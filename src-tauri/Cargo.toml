@@ -1,0 +1,97 @@
+[package]
+name = "tauri-app"
+version = "1.14.10"
+description = "Real Windows tweaks with automatic one-click rollback"
+authors = ["Aurelio Avila"]
+license-file = "../LICENSE"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+# The `_lib` suffix may seem redundant but it is necessary
+# to make the lib name unique and wouldn't conflict with the bin name.
+# This seems to be only an issue on Windows, see https://github.com/rust-lang/cargo/issues/8519
+name = "tauri_app_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+# The "devtools" Cargo feature specifically enables DevTools (F12 /
+# right-click Inspect) in RELEASE builds — debug builds already get them for
+# free from `cargo tauri dev` without it. With it on, anyone with local
+# access to the shipped installer could open a full JS console and call
+# `window.__TAURI__.core.invoke(...)` directly with arbitrary arguments,
+# bypassing every UI-side guard (which drive, which folder, which tweak id).
+# So it is left off here and enabled only via the optional feature declared at
+# the bottom of this file, which dev builds turn on and release builds do not.
+tauri = { version = "2", features = ["tray-icon"] }
+tauri-plugin-opener = "2"
+tauri-plugin-dialog = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+trash = "5"
+sysinfo = "0.32"
+tauri-plugin-updater = "2"
+tauri-plugin-process = "2"
+ed25519-dalek = "2"
+base64 = "0.22"
+
+[target.'cfg(windows)'.dependencies]
+winreg = "0.52"
+# Reading and editing the browsers' cookie databases, for the selective cookie
+# cleaner (src/cookies.rs). `bundled` compiles SQLite into the binary rather
+# than linking whatever version happens to be on the machine: these are the
+# user's live browser profiles, and "whatever SQLite the system has" is not a
+# thing to be relaxed about when writing to one.
+rusqlite = { version = "0.32", features = ["bundled"] }
+# LoadLibrary/GetProcAddress only, for SRSetRestorePointW via dynamic loading
+# (a link-time srclient.dll import would crash at startup on Windows Server).
+windows-sys = { version = "0.59", features = [
+    "Win32_Foundation",
+    "Win32_System_LibraryLoader",
+    # GetLogicalProcessorInformationEx / affinity, for the X3D die aligner.
+    "Win32_System_SystemInformation",
+    "Win32_System_Threading",
+    "Win32_System_Services",
+    "Win32_System_Power",
+    "Win32_System_Registry",
+    # GetForegroundWindow / GetWindowThreadProcessId, so the gaming HUD can
+    # name the process it is reporting on instead of guessing.
+    "Win32_UI_WindowsAndMessaging",
+    # NtSetSystemInformation, for the standby-list purge in the Zero-Trace
+    # cleaner. Declared via LoadLibrary rather than linked, same as srclient.
+    "Win32_Security",
+    "Win32_System_Memory",
+    # A real-time ETW consumer, for the frame counter. See src/fps.rs — the
+    # DXGI provider's Present events are the only way to observe a game's
+    # frame pacing from outside the game.
+    "Win32_System_Diagnostics_Etw",
+    # QueryPerformanceFrequency, to turn the QPC timestamps those events
+    # carry into milliseconds.
+    "Win32_System_Performance",
+    # EVENT_TRACE_LOGFILEW carries a TIME_ZONE_INFORMATION, so the consumer
+    # side of Etw is gated behind this too.
+    "Win32_System_Time",
+    # DwmSetWindowAttribute, to stop Windows 11 rounding the overlay window
+    # underneath the panel's own rounded corners.
+    "Win32_Graphics_Dwm",
+    "Win32_Graphics_Gdi",
+] }
+is_elevated = "0.1"
+runas = "1"
+windows = { version = "0.58", features = ["Management_Deployment", "Foundation_Collections", "ApplicationModel", "Win32_System_Com"] }
+
+# `tauri dev` recognizes a feature literally named "devtools" on the
+# consuming crate and enables it automatically for dev builds; `tauri build`
+# never does. This is the sanctioned way to get DevTools back locally
+# without a Cargo target selector, which does not support debug_assertions
+# (only platform/arch cfgs are valid there — the wrong attempt at this
+# would silently fail to gate anything).
+[features]
+devtools = ["tauri/devtools"]
+
+[dev-dependencies]
+tauri = { version = "2", features = ["test"] }

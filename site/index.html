@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- GitHub Pages can't set response headers, so the security policies that
+       CAN live in <meta> do. frame-ancestors and HSTS can't be expressed here
+       (browsers ignore them in meta) — those would need a proxy/CDN in front. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://api.pctweaker.app; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests" />
+  <meta name="referrer" content="strict-origin-when-cross-origin" />
+  <title>PC Tweaker | Windows Tuning for Steadier Frame Times</title>
+  <meta name="description" content="Review Windows gaming, privacy and performance settings. Inspect each change and restore supported tweaks. Download PC Tweaker Free for Windows 10/11." />
+  <link rel="canonical" href="https://pctweaker.app/" />
+  <meta property="og:title" content="PC Tweaker | Windows Tuning for Steadier Frame Times" />
+  <meta property="og:description" content="Review Windows gaming, privacy and performance settings. Inspect each change and restore supported tweaks. Download PC Tweaker Free for Windows 10/11." />
+  <meta property="og:url" content="https://pctweaker.app" />
+  <meta property="og:type" content="website" />
+  <!-- A real capture of the Profiles screen, letterboxed onto the page
+       background so the asset is exactly 1200x630 — the size Facebook, X,
+       LinkedIn and Slack all want for a large card. The previous asset was
+       1002x702, which is below the 1200x630 minimum and got downgraded to a
+       small thumbnail. The source screenshot is regenerated per release, so
+       the tweak counter visible in it tracks the shipped catalogue instead of
+       going stale the way the old marketing thumbnails did. -->
+  <meta property="og:image" content="https://pctweaker.app/og-cover-20260916.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="PC Tweaker Profiles: editable Gaming, Study and Work presets" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="PC Tweaker | Windows Tuning for Steadier Frame Times" />
+  <meta name="twitter:description" content="Review Windows gaming, privacy and performance settings. Inspect each change and restore supported tweaks. Download PC Tweaker Free for Windows 10/11." />
+  <meta name="twitter:image" content="https://pctweaker.app/og-cover-20260916.png" />
+  <!-- favicon href is set at runtime in main.tsx from a hashed Vite asset URL,
+       so its filename (and cache key) changes automatically whenever the
+       source PNG changes — no more stale favicon caching in the browser. -->
+  <link rel="icon" type="image/png" href="/src/assets/favicon.png" id="favicon-link" />
+  <!-- Fonts are self-hosted via @fontsource (imported in main.tsx): no request
+       ever leaves for Google's servers, so no visitor IP reaches a third party
+       before consent — there is nothing to consent to. -->
+  <!-- Framer Motion's entry animations start from opacity:0, and the
+       prerenderer faithfully writes that initial state into the HTML. With
+       JavaScript running that is invisible: the bundle hydrates and animates
+       the content in. Without it, roughly fifty blocks stay at opacity:0 and
+       the page renders as a bare navbar over black — which is what a crawler
+       that does not execute scripts, or a reader whose bundle failed, sees.
+
+       This restores them, and only for that case: a <noscript> block is inert
+       the moment scripts run, so it cannot alter a single frame of the normal
+       experience. An inline <script> toggling a class would cover more cases
+       but the page's own CSP is script-src 'self' with no 'unsafe-inline',
+       and weakening that to fix a rendering fallback would be a bad trade. -->
+  <noscript>
+    <style>
+      #root [style*="opacity:0"] {
+        opacity: 1 !important;
+        transform: none !important;
+      }
+    </style>
+  </noscript>
+  <!-- Sitewide identity. This block is kept on every prerendered page so the
+       publisher and the site itself resolve to one stable @id across the
+       whole property, instead of the homepage being the only page search
+       engines can attach an entity to. No aggregateRating and no review here:
+       the site shows external scores it does not own and private feedback it
+       was not given permission to republish, so neither is a rating this
+       domain may assert as its own. -->
+  <script type="application/ld+json" data-ld="site">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        "@id": "https://pctweaker.app/#organization",
+        "name": "PC Tweaker",
+        "url": "https://pctweaker.app/",
+        "logo": {
+          "@type": "ImageObject",
+          "url": "https://pctweaker.app/logo.png",
+          "width": 256,
+          "height": 256
+        },
+        "founder": { "@type": "Person", "name": "Aurelio Avila" },
+        "sameAs": [
+          "https://github.com/AurelioAvila/pc-tweaker-app",
+          "https://apps.microsoft.com/detail/9nh3c6dt1g87"
+        ]
+      },
+      {
+        "@type": "WebSite",
+        "@id": "https://pctweaker.app/#website",
+        "name": "PC Tweaker",
+        "url": "https://pctweaker.app/",
+        "inLanguage": "en",
+        "publisher": { "@id": "https://pctweaker.app/#organization" }
+      }
+    ]
+  }
+  </script>
+  <!-- Route-specific structured data is injected here by scripts/prerender.mjs
+       (SoftwareApplication on the homepage, FAQPage where a real FAQ is
+       rendered on the page). Vite leaves HTML comments in the template alone,
+       so this marker survives the client build and reaches the prerenderer. -->
+  <!--ROUTE_LD-->
+  <script type="application/ld+json" data-ld="app">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "@id": "https://pctweaker.app/#software",
+    "name": "PC Tweaker",
+    "operatingSystem": "Windows 10, Windows 11",
+    "applicationCategory": "UtilitiesApplication",
+    "softwareVersion": "__APP_VERSION__",
+    "softwareRequirements": "Windows 10 or Windows 11",
+    "downloadUrl": "https://github.com/AurelioAvila/pc-tweaker-app/releases/latest/download/PCTweaker-Setup.exe",
+    "description": "Windows tuning for gaming, privacy and maintenance, with visible setting changes and restore tools for supported tweaks.",
+    "url": "https://pctweaker.app/",
+    "image": "https://pctweaker.app/og-cover-20260916.png",
+    "sameAs": [
+      "https://github.com/AurelioAvila/pc-tweaker-app",
+      "https://apps.microsoft.com/detail/9nh3c6dt1g87",
+      "https://www.majorgeeks.com/files/details/pc_tweaker.html"
+    ],
+    "author": { "@type": "Person", "name": "Aurelio Avila" },
+    "publisher": { "@id": "https://pctweaker.app/#organization" },
+    "offers": [
+      { "@type": "Offer", "price": "0", "priceCurrency": "EUR", "name": "Free", "description": "Free plan — no account required" },
+      { "@type": "Offer", "price": "7.99", "priceCurrency": "EUR", "name": "Pro monthly", "description": "Pro subscription billed monthly" },
+      { "@type": "Offer", "price": "59.99", "priceCurrency": "EUR", "name": "Pro annual", "description": "Pro subscription billed yearly" },
+      { "@type": "Offer", "price": "99", "priceCurrency": "EUR", "name": "Pro lifetime", "description": "One-time Pro purchase" }
+    ]
+  }
+  </script>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/main.tsx"></script>
+</body>
+</html>

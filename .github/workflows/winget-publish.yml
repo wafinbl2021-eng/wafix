@@ -1,0 +1,81 @@
+name: Publish to winget
+
+# Every release so far has been submitted to winget by hand: fetch the last
+# manifest as a template, edit the version/URL/hash, open a PR. That is how
+# a hash mismatch or a stale URL slipped through before — a manual step run
+# under time pressure is a manual step that gets skipped or rushed. This
+# generates the manifest and opens the PR itself, from the release that is
+# already signed and published, so there is nothing left to transcribe.
+#
+# "released" rather than "published": winget-releaser's own recommendation,
+# and it excludes pre-releases specifically — a beta build has no business
+# reaching winget's index.
+on:
+  release:
+    types: [released]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to submit (defaults to latest)"
+        required: false
+
+# The job never pushes to this repository — only to a fork of winget-pkgs,
+# authenticated by the PAT in WINGET_TOKEN below, which is a separate
+# credential from anything GITHUB_TOKEN could grant here.
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: windows-latest
+    outputs:
+      tag: ${{ steps.verify.outputs.tag }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+        with:
+          persist-credentials: false
+      - name: Verify release installers before catalog submission
+        id: verify
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.tag || github.event.release.tag_name }}
+        run: ./scripts/verify-published-release.ps1 -Tag $env:RELEASE_TAG
+
+  publish:
+    needs: verify
+    runs-on: ubuntu-latest
+    steps:
+      # Same shape as the Discord announcement workflow: a missing secret
+      # skips the job with a visible warning rather than failing the run
+      # red. The PAT is a personal credential tied to a GitHub account, not
+      # something that can be generated from inside a workflow.
+      - name: Check for the winget PAT
+        id: gate
+        env:
+          WINGET_TOKEN: ${{ secrets.WINGET_TOKEN }}
+        run: |
+          if [ -z "$WINGET_TOKEN" ]; then
+            echo "::warning::WINGET_TOKEN secret is not set; skipping the winget submission"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - if: steps.gate.outputs.skip != 'true'
+        uses: vedantmgoyal9/winget-releaser@4ffc7888bffd451b357355dc214d43bb9f23917e # v2
+        with:
+          identifier: AurelioAvila.PCTweaker
+          # The release also carries an MSI and two stable-named copies of
+          # the same binaries for the download link on the site. The default
+          # pattern would match all four and produce a manifest listing the
+          # same x64 installer twice; every merged manifest so far has listed
+          # exactly the versioned NSIS setup, which is what this matches.
+          installers-regex: '_x64-setup\.exe$'
+          # On a release event `inputs.tag` is empty, and the action then
+          # asks GitHub for the release at `/releases/tags/` — a 404 that
+          # fails the job before Komac ever runs. The event carries the tag
+          # already, so fall back to it and keep the manual input as an
+          # override for re-submitting an older release.
+          release-tag: ${{ needs.verify.outputs.tag }}
+          token: ${{ secrets.WINGET_TOKEN }}

@@ -1,0 +1,143 @@
+# .env only ever contained a public URL in this repo's history (verified
+# 2026-08-04, never a secret) — but the repo is PUBLIC and .env was not
+# protected: a future variable landing here instead of a new local .env would
+# have been published by mistake. Ignored from here on.
+.env
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# YouTube upload credentials/tokens — never commit.
+# No file extension anchor on purpose: a real OAuth refresh token was sitting
+# in "token.json.bak_pre_analytics", which "token*.json" did not match.
+marketing/youtube-upload/client_secret*
+marketing/youtube-upload/token*
+marketing/youtube-upload/uploaded-log.json
+marketing/youtube-upload/auto-upload.log
+marketing/youtube-upload/node_modules
+marketing/to-publish/*.mp4
+marketing/to-publish/*.json
+marketing/to-publish/*.x-caption.txt
+!marketing/to-publish/README.md
+marketing/published/*.mp4
+marketing/published/*.json
+marketing/published/*.x-caption.txt
+
+# TikTok upload credentials/tokens — never commit
+marketing/tiktok-upload/credentials*
+marketing/tiktok-upload/uploaded-log.json
+marketing/tiktok-upload/auto-upload.log
+marketing/tiktok-upload/node_modules
+
+# Instagram upload credentials/tokens — never commit
+marketing/instagram-upload/credentials*
+marketing/instagram-upload/uploaded-log.json
+marketing/instagram-upload/story-log.json
+marketing/instagram-upload/auto-upload.log
+marketing/instagram-upload/node_modules
+marketing/tiktok-upload/telegram_notify_counter.json
+
+# X (Twitter) manual-posting caption generator — logs only, no secrets
+marketing/x-upload/generate-captions.log
+
+# Reel generator scratch/output — never commit rendered media
+marketing/reel-generator/output/*
+!marketing/reel-generator/output/.gitkeep
+marketing/reel-generator/generate.log
+marketing/reel-generator/__pycache__
+marketing/reel-generator/src/__pycache__
+marketing/reel-generator/used_backgrounds.json
+marketing/reel-generator/run.bat
+marketing/reel-generator/.venv
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+marketing/youtube-upload/longform_output/*
+!marketing/youtube-upload/longform_output/.gitkeep
+marketing/tiktok-upload/run.bat
+
+# Safety net: credential files anywhere in the repo, including renamed copies
+# and backups. Rules above are per-folder and easy to miss when a file is
+# copied or suffixed; these catch it regardless of location or extension.
+**/token.json*
+**/token*.json*
+**/client_secret*
+**/credentials.json*
+**/*.pem
+**/*.p12
+**/*.pfx
+**/service-account*.json
+.env.local
+.env.*.local
+
+# Per-release updater manifest, generated at release time — not source
+latest.json
+
+# Social/video assets live outside version control (some exceed GitHub's 100MB limit)
+# The eight scheduled tasks that publish to social run from here, and until
+# today this code was not under version control: a bare `marketing/` added on
+# 2026-08-21 had silently overridden the thirty per-file rules written three
+# days earlier. Eight pipelines on code that existed in one place only.
+#
+# The folder is 4.8 GB but the code is 312 KB: the rest is media, and stays
+# out. So this denies everything and re-admits only source, because this
+# repository is public and there are live Google, TikTok and Instagram OAuth
+# tokens under marketing/. Getting the direction wrong publishes them.
+marketing/**
+!marketing/*/
+!marketing/*/*/
+!marketing/**/*.js
+!marketing/**/*.mjs
+!marketing/**/*.py
+!marketing/**/*.md
+
+# And never these, whatever they are called and wherever they sit.
+marketing/**/node_modules/**
+marketing/**/.venv/**
+marketing/**/__pycache__/**
+marketing/**/credentials*
+marketing/**/client_secret*
+marketing/**/token*
+marketing/**/*.env*
+marketing/**/*-log.json
+marketing/**/*.log
+
+# The launchers stay out, all five. Two of them carry a Telegram token
+# inline for a reason documented in the file itself — a Scheduled Task does
+# not see newly set user env vars without a logoff — and on a public
+# repository the difference between a clean .bat and one that is not is a
+# future edit nobody re-reads. The safe default is none of them.
+marketing/**/*.bat
+
+# Store packaging and its output: the MSIX is rebuilt from the release binary
+# every time, and each one is several megabytes of build product.
+msix-build/
+*.msix
+
+# Store listing screenshots, recaptured whenever the UI changes.
+store-screenshots/
+
+# winget manifests: the copy that matters is the one in microsoft/winget-pkgs.
+manifests/
+
+scripts/.advisor-test-bundle.css
+scripts/.thermals-test-bundle.css

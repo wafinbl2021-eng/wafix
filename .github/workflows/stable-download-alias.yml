@@ -1,0 +1,85 @@
+name: Stable download alias
+
+# Releases are versioned by filename (pc-tweaker-app_X.Y.Z_x64-setup.exe),
+# which is correct for the release page but useless as a permanent "click to
+# download" link — it changes every release. This mirrors each new release's
+# installer under a fixed name (PCTweaker-Setup.exe/.msi) so the website can
+# link to /releases/latest/download/PCTweaker-Setup.exe once and never touch
+# it again.
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to alias (defaults to latest)"
+        required: false
+
+permissions:
+  contents: write
+
+jobs:
+  alias:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+        with:
+          persist-credentials: false
+      # Event/input values are passed through `env:` rather than interpolated
+      # into the script text: a `${{ }}` inside `run:` is pasted verbatim
+      # before the shell parses it, so a crafted tag name would execute as
+      # shell. Only maintainers can create releases here, but the safe form
+      # costs nothing.
+      - name: Resolve tag
+        id: tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          INPUT_TAG: ${{ inputs.tag }}
+        run: |
+          TAG="$RELEASE_TAG"
+          if [ -z "$TAG" ]; then TAG="$INPUT_TAG"; fi
+          if [ -z "$TAG" ]; then TAG=$(gh release view --json tagName --jq .tagName); fi
+          [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || exit 1
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Download versioned installers
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          gh release download "$TAG" \
+            --repo "${{ github.repository }}" \
+            --pattern "*_x64-setup.exe" \
+            --pattern "*_x64_en-US.msi" \
+            --clobber -D dl
+
+      - name: Verify publisher and timestamps before creating aliases
+        shell: pwsh
+        run: |
+          $files = @(Get-ChildItem -LiteralPath dl -File)
+          if ($files.Count -ne 2) { throw 'Expected exactly one EXE and one MSI.' }
+          ./scripts/verify-authenticode.ps1 -Path $files.FullName
+
+      - name: Rename to stable filenames
+        run: |
+          mkdir -p out
+          cp "$(ls dl/*_x64-setup.exe)" out/PCTweaker-Setup.exe
+          cp "$(ls dl/*_x64_en-US.msi)" out/PCTweaker-Setup.msi
+
+      - name: Verify final aliases before upload
+        shell: pwsh
+        run: ./scripts/verify-authenticode.ps1 -Path @('out/PCTweaker-Setup.exe', 'out/PCTweaker-Setup.msi')
+
+      - name: Upload stable aliases to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          gh release upload "$TAG" \
+            out/PCTweaker-Setup.exe out/PCTweaker-Setup.msi \
+            --repo "${{ github.repository }}" --clobber

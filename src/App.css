@@ -1,0 +1,861 @@
+@import "tailwindcss";
+
+/* ==========================================================================
+   PC Tweaker — "The Control Room" / Signal Architecture
+   ==========================================================================
+   Three token layers, per the design system:
+
+   1. FOUNDATION — raw, theme-independent physics: spacing rhythm, radii,
+      type scale, motion durations/easings.
+   2. THEME RAW DATA — each of the 14 themes contributes exactly three raw
+      values (two background steps + one accent). Nothing else is allowed to
+      vary per theme: identity lives in the system, not in the palette.
+   3. SEMANTIC — every color a component may reference, derived from the raw
+      data with color-mix so all 14 themes (and any future one) get the same
+      contrast relationships for free. Components never touch raw values.
+
+   Depth is expressed through luminance steps and hairline borders, never
+   through large shadows (Fluent-style layering). One accent; success /
+   warning / danger / info are fixed semantic colors reserved for meaning.
+   ========================================================================== */
+
+/* ---- 1. Foundation ------------------------------------------------------ */
+
+:root {
+  /* Radius grammar: controls (s), cards/surfaces (m), overlays (l). */
+  --radius-s: 6px;
+  --radius-m: 10px;
+  --radius-l: 14px;
+
+  /* Motion: quality, not entertainment. */
+  --dur-fast: 120ms;
+  --dur-base: 180ms;
+  --dur-slow: 240ms;
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+
+  --font-app:
+    "Inter Variable", Inter, "Segoe UI Variable", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+  --font-data: "Cascadia Code", Consolas, ui-monospace, monospace;
+}
+
+/* ---- 2. Theme raw data --------------------------------------------------- */
+/* The values match pctweaker.app's theme picker. `--app-accent2` is legacy
+   (old dual-accent gradients); it is being retired screen by screen and no
+   new usage is permitted. */
+
+:root,
+[data-theme="violet"] {
+  --app-bg-a: #1b1230;
+  --app-bg-b: #10091f;
+  --app-accent: #ff5c8a;
+  --app-accent2: #35e0c0;
+}
+
+[data-theme="teal_depths"] {
+  --app-bg-a: #0f2a2a;
+  --app-bg-b: #071a1a;
+  --app-accent: #35e0c0;
+  --app-accent2: #ff5c8a;
+}
+
+[data-theme="amber_dusk"] {
+  --app-bg-a: #2a1d0f;
+  --app-bg-b: #1a1006;
+  --app-accent: #ffb84d;
+  --app-accent2: #5bd1ff;
+}
+
+[data-theme="crimson_steel"] {
+  --app-bg-a: #2a121a;
+  --app-bg-b: #1a0a0f;
+  --app-accent: #ff4d6d;
+  --app-accent2: #4ce0b3;
+}
+
+[data-theme="ocean_blue"] {
+  --app-bg-a: #0d1d33;
+  --app-bg-b: #050e1a;
+  --app-accent: #3d8bff;
+  --app-accent2: #ffb74d;
+}
+
+[data-theme="forest_emerald"] {
+  --app-bg-a: #0e2318;
+  --app-bg-b: #06140d;
+  --app-accent: #2ecc71;
+  --app-accent2: #ff6f91;
+}
+
+[data-theme="royal_gold"] {
+  --app-bg-a: #251a05;
+  --app-bg-b: #170f02;
+  --app-accent: #e8b923;
+  --app-accent2: #6f5bff;
+}
+
+[data-theme="slate_mono"] {
+  --app-bg-a: #15181c;
+  --app-bg-b: #0b0d10;
+  --app-accent: #9aa5b1;
+  --app-accent2: #6ee7b7;
+}
+
+[data-theme="indigo_night"] {
+  --app-bg-a: #131335;
+  --app-bg-b: #0a0a1f;
+  --app-accent: #6c63ff;
+  --app-accent2: #ffc155;
+}
+
+[data-theme="coral_sunset"] {
+  --app-bg-a: #2a1712;
+  --app-bg-b: #1a0d08;
+  --app-accent: #ff7a45;
+  --app-accent2: #4dd9e8;
+}
+
+[data-theme="rose_quartz"] {
+  --app-bg-a: #2a1620;
+  --app-bg-b: #1a0e14;
+  --app-accent: #ffafcb;
+  --app-accent2: #e88aae;
+}
+
+[data-theme="cyber_lime"] {
+  --app-bg-a: #122212;
+  --app-bg-b: #0a140a;
+  --app-accent: #b6ff3c;
+  --app-accent2: #7ed321;
+}
+
+[data-theme="copper_forge"] {
+  --app-bg-a: #2a1c10;
+  --app-bg-b: #1a1108;
+  --app-accent: #d98b4a;
+  --app-accent2: #4ad9c8;
+}
+
+[data-theme="magenta_pulse"] {
+  --app-bg-a: #2a0f26;
+  --app-bg-b: #1a0817;
+  --app-accent: #ff2fd0;
+  --app-accent2: #3cf0ff;
+}
+
+/* ---- 3. Semantic tokens --------------------------------------------------- */
+
+:root {
+  /* Backgrounds: the app floor and the raised band (sidebar / chrome). */
+  --bg-app: var(--app-bg-b);
+  --bg-raised: var(--app-bg-a);
+
+  /* Surfaces: two opaque luminance steps above the floor. Opaque on purpose —
+     translucent stacks are where custom themes go to die. */
+  --surface-1: color-mix(in oklab, var(--app-bg-a) 96%, white);
+  --surface-2: color-mix(in oklab, var(--app-bg-a) 90%, white);
+  --surface-hover: color-mix(in oklab, var(--app-bg-a) 93%, white);
+
+  /* Hairline borders carry the depth that shadows used to fake. */
+  --border-subtle: color-mix(in oklab, white 9%, transparent);
+  --border-strong: color-mix(in oklab, white 16%, transparent);
+
+  /* Ink: three deliberate steps, all AA on every theme background because
+     they are mixed from white, not picked per theme. */
+  --text-primary: color-mix(in oklab, white 92%, var(--app-bg-a));
+  --text-secondary: color-mix(in oklab, white 72%, var(--app-bg-a));
+  --text-muted: color-mix(in oklab, white 56%, var(--app-bg-a));
+
+  /* One accent. Soft variant for fills behind accent-colored text/icons.
+     on-accent is a deep shade of the theme's own hue: every shipped accent
+     is mid-to-bright, so dark ink on it clears AA on all 14 themes. */
+  --accent: var(--app-accent);
+  --accent-soft: color-mix(in oklab, var(--app-accent) 14%, transparent);
+  --on-accent: color-mix(in oklab, var(--app-bg-b) 70%, black);
+  --focus: var(--app-accent);
+
+  /* Fixed status colors, reserved for meaning — never decoration. Tuned for
+     AA as text on the darkest shipped background. */
+  --success: #4ade80;
+  --warning: #fbbf24;
+  --danger: #f87171;
+  --info: #7dd3fc;
+  --overlay: rgb(0 0 0 / 0.6);
+}
+
+/* ---- Tailwind bridge ------------------------------------------------------ */
+/* Semantic utilities (bg-surface-1, text-ink-2, border-line, text-warn, ...).
+   Components use ONLY these color utilities; raw palette classes are being
+   removed screen by screen. */
+
+@theme inline {
+  --color-app: var(--bg-app);
+  --color-raised: var(--bg-raised);
+  --color-surface-1: var(--surface-1);
+  --color-surface-2: var(--surface-2);
+  --color-surface-hover: var(--surface-hover);
+  --color-ink: var(--text-primary);
+  --color-ink-2: var(--text-secondary);
+  --color-ink-3: var(--text-muted);
+  --color-line: var(--border-subtle);
+  --color-line-2: var(--border-strong);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-on-accent: var(--on-accent);
+  --color-ok: var(--success);
+  --color-warn: var(--warning);
+  --color-danger: var(--danger);
+  --color-info: var(--info);
+
+  --font-sans: var(--font-app);
+  --font-mono: var(--font-data);
+
+  --radius-s: var(--radius-s);
+  --radius-m: var(--radius-m);
+  --radius-l: var(--radius-l);
+}
+
+/* ---- Base ----------------------------------------------------------------- */
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  background-color: var(--bg-app);
+}
+
+body {
+  font-family: var(--font-app);
+  color: var(--text-primary);
+  font-size: 13px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Tailwind v4 ships `cursor: default` on buttons in its preflight, where v3
+   left the browser's pointer alone. Every button in this app inherited that,
+   so nothing in the entire interface showed a hand cursor. Set once here
+   rather than as a `cursor-pointer` class on each of the ~150 buttons.
+
+   In `@layer base` on purpose: a utility class on the element still wins, so
+   the places that deliberately ask for `cursor-wait` while an action runs
+   keep working. Disabled buttons are excluded — a pointer over a control
+   that cannot be pressed is a lie. */
+@layer base {
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  a[href],
+  label:has(input[type="checkbox"]:not(:disabled)),
+  summary {
+    cursor: pointer;
+  }
+}
+
+/* ---- Type scale ------------------------------------------------------------ */
+/* One family; hierarchy from size/weight/tracking only. `type-data` is for
+   numbers and technical values: tabular figures so columns never wobble. */
+
+.type-display {
+  font-size: 24px;
+  line-height: 1.25;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+.type-page {
+  font-size: 20px;
+  line-height: 1.3;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+.type-section {
+  font-size: 15px;
+  line-height: 1.35;
+  font-weight: 600;
+}
+
+.type-card {
+  font-size: 13.5px;
+  line-height: 1.4;
+  font-weight: 600;
+}
+
+.type-body {
+  font-size: 13px;
+  line-height: 1.5;
+  font-weight: 400;
+}
+
+.type-caption {
+  font-size: 11.5px;
+  line-height: 1.45;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.type-label {
+  font-size: 11px;
+  line-height: 1.3;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.type-data {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+.type-mono {
+  font-family: var(--font-data);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- Signal: the active-state hairline ------------------------------------ */
+/* The system's signature: a 2px indicator that "lights up" beside whatever is
+   active or applied — an instrument LED, not a filled block. */
+
+.signal {
+  position: relative;
+}
+
+.signal::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  translate: 0 -50%;
+  width: 2px;
+  height: 0;
+  border-radius: 1px;
+  background: var(--accent);
+  transition:
+    height var(--dur-base) var(--ease-standard),
+    opacity var(--dur-base) var(--ease-standard);
+  opacity: 0;
+}
+
+.signal[data-active="true"]::before {
+  height: 60%;
+  opacity: 1;
+}
+
+/* ---- Focus ----------------------------------------------------------------- */
+/* Keyboard navigation is a first-class input: one visible, handsome ring,
+   everywhere, only on :focus-visible so mouse users never see noise. */
+
+:where(button, a, input, select, textarea, [role="switch"], [tabindex]):focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* ---- Motion ----------------------------------------------------------------- */
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes skeleton-shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+.animate-card {
+  animation: fade-in-up var(--dur-slow) var(--ease-standard) both;
+}
+
+.animate-toast {
+  animation: toast-in var(--dur-base) var(--ease-standard) both;
+}
+
+.skeleton {
+  border-radius: var(--radius-s);
+  background: linear-gradient(
+    90deg,
+    var(--surface-1) 25%,
+    var(--surface-2) 50%,
+    var(--surface-1) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.6s linear infinite;
+}
+
+/* The sidebar tip row opens onto its stepper. grid-template-rows 0fr -> 1fr is
+   what makes this animate to the content's own height without measuring it in
+   JS, and unlike a conditional mount it animates closed as well. The content
+   stays in the DOM for that, so the collapsed state is marked `inert` in the
+   component — the animation must never leave a reachable hidden control. */
+.coffee-reveal {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows var(--dur-slow) var(--ease-standard);
+}
+
+.coffee-reveal > * {
+  overflow: hidden;
+  opacity: 0;
+  transform: translateY(-4px);
+  transition:
+    opacity var(--dur-base) var(--ease-standard),
+    transform var(--dur-base) var(--ease-standard);
+}
+
+.coffee-reveal[data-open="true"] {
+  grid-template-rows: 1fr;
+}
+
+.coffee-reveal[data-open="true"] > * {
+  opacity: 1;
+  transform: translateY(0);
+  /* Delayed so the fade lands after the height has opened, not through it. */
+  transition-delay: 60ms;
+}
+
+@keyframes coffee-count-pop {
+  from {
+    transform: scale(0.82);
+    opacity: 0.4;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Replayed by remounting the span on every change (key={count}). */
+.coffee-count {
+  animation: coffee-count-pop var(--dur-base) var(--ease-standard) both;
+}
+
+/* The cup tilts toward the pointer on the row it belongs to. */
+.coffee-row:hover .coffee-mark {
+  transform: rotate(-8deg) scale(1.08);
+}
+
+.coffee-mark {
+  transition: transform var(--dur-base) var(--ease-standard);
+}
+
+/* Reduce Motion is a contract, not a suggestion. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Indeterminate sweep used by the System Pulse while a scan is running. */
+@keyframes pulse-sweep {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(400%);
+  }
+}
+
+/* ==========================================================================
+   4. Material — depth, edges, and the instrument field
+   ==========================================================================
+   Everything below is derived from the same three raw values each theme
+   contributes, so it lands identically on all 14 palettes. Depth comes from
+   luminance steps, a one-pixel lit edge and a tight contact shadow — the way
+   a physical panel sits in a chassis — rather than from the large soft
+   shadows a web page would use.
+   ========================================================================== */
+
+:root {
+  /* The lit top edge and the shadow directly under a raised element. Two
+     values, used everywhere, so nothing invents its own depth. */
+  --edge-lit: color-mix(in oklab, white 7%, transparent);
+  --elev-raised:
+    inset 0 1px 0 var(--edge-lit), 0 1px 2px rgb(0 0 0 / 0.4), 0 10px 26px -14px rgb(0 0 0 / 0.6);
+  --elev-recessed: inset 0 1px 3px rgb(0 0 0 / 0.45), inset 0 -1px 0 var(--edge-lit);
+
+  /* Technical grid. Deliberately at the edge of visibility: it should read as
+     texture on a machined surface, never as a pattern anyone notices. */
+  --grid-line: color-mix(in oklab, white 3.4%, transparent);
+  --grid-step: 28px;
+}
+
+/* The floor the whole app sits on: grid, plus one very faint accent bloom
+   from the top edge so the window has a light source. */
+.app-field {
+  background-color: var(--bg-app);
+  background-image:
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px),
+    radial-gradient(
+      110% 62% at 50% -10%,
+      color-mix(in oklab, var(--app-accent) 11%, transparent),
+      transparent 60%
+    );
+  background-size:
+    var(--grid-step) var(--grid-step),
+    var(--grid-step) var(--grid-step),
+    100% 100%;
+  background-attachment: local, local, fixed;
+}
+
+/* A raised panel. The gradient is a two-stop luminance fall, not decoration:
+   it is what makes the top edge read as catching light. */
+.panel {
+  background: linear-gradient(180deg, var(--surface-2) 0%, var(--surface-1) 48%);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-l);
+  box-shadow: var(--elev-raised);
+}
+
+.panel-hover {
+  transition:
+    border-color var(--dur-base) var(--ease-standard),
+    background var(--dur-base) var(--ease-standard),
+    box-shadow var(--dur-base) var(--ease-standard);
+}
+
+.panel-hover:hover {
+  border-color: var(--border-strong);
+  box-shadow:
+    inset 0 1px 0 var(--edge-lit),
+    0 1px 2px rgb(0 0 0 / 0.45),
+    0 14px 30px -14px rgb(0 0 0 / 0.7);
+}
+
+/* Sunk into the chassis: readouts, wells, anything that is being displayed
+   *to* the user rather than pressed *by* them. */
+.well {
+  background: color-mix(in oklab, var(--app-bg-b) 60%, var(--surface-1));
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-m);
+  box-shadow: var(--elev-recessed);
+}
+
+/* ---- Window chrome -------------------------------------------------------- */
+/* The window is frameless, so this bar *is* the title bar: it carries the
+   drag region, the live status and the three system buttons. */
+
+.titlebar {
+  height: 42px;
+  background: linear-gradient(180deg, var(--surface-2), var(--bg-raised));
+  border-bottom: 1px solid var(--border-subtle);
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.winbtn {
+  width: 44px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  color: var(--text-muted);
+  transition:
+    background-color var(--dur-fast) var(--ease-standard),
+    color var(--dur-fast) var(--ease-standard);
+}
+
+.winbtn:hover {
+  background-color: var(--surface-hover);
+  color: var(--text-primary);
+}
+
+/* The one place a fixed red is correct: every Windows user reads this exact
+   affordance, and a themed close button would be a puzzle. */
+.winbtn-close:hover {
+  background-color: #e0364f;
+  color: #fff;
+}
+
+/* ---- Status LED ----------------------------------------------------------- */
+
+.led {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow:
+    0 0 0 2px color-mix(in oklab, currentColor 18%, transparent),
+    0 0 9px 0 color-mix(in oklab, currentColor 70%, transparent);
+}
+
+/* ---- Navigation ----------------------------------------------------------- */
+/* No filled block behind the icon. The active row is marked by a lit hairline
+   at the chassis edge and by ink stepping up to pure white — the contrast
+   does the work a background colour would have done more loudly. */
+
+.nav-item {
+  position: relative;
+  transition:
+    color var(--dur-fast) var(--ease-standard),
+    background-color var(--dur-fast) var(--ease-standard);
+}
+
+.nav-item::before {
+  content: "";
+  position: absolute;
+  left: -16px;
+  top: 50%;
+  translate: 0 -50%;
+  width: 2px;
+  height: 0;
+  border-radius: 0 2px 2px 0;
+  background: var(--accent);
+  box-shadow: 0 0 10px 0 color-mix(in oklab, var(--accent) 75%, transparent);
+  transition:
+    height var(--dur-base) var(--ease-standard),
+    opacity var(--dur-base) var(--ease-standard);
+  opacity: 0;
+}
+
+.nav-item[data-active="true"] {
+  color: #fff;
+  background: linear-gradient(
+    90deg,
+    color-mix(in oklab, var(--accent) 10%, transparent),
+    transparent 62%
+  );
+}
+
+.nav-item[data-active="true"]::before {
+  height: 68%;
+  opacity: 1;
+}
+
+/* ---- Switch --------------------------------------------------------------- */
+/* Off, the switch is part of the chassis. On, it lights up in the theme's own
+   accent with a short glow, the way a real panel LED does. */
+
+.switch {
+  box-shadow: var(--elev-recessed);
+  transition:
+    background-color var(--dur-base) var(--ease-standard),
+    box-shadow var(--dur-base) var(--ease-standard);
+}
+
+.switch-on {
+  background: var(--accent);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.28),
+    0 0 0 1px color-mix(in oklab, var(--accent) 55%, transparent),
+    0 0 14px -1px color-mix(in oklab, var(--accent) 75%, transparent);
+}
+
+/* ---- Pro chip -------------------------------------------------------------- */
+/* Gold is fixed across all 14 themes on purpose: it marks a commercial tier,
+   not a state of the machine, so it must not restyle itself per palette. The
+   stops are a metal reflection — light edge, body, a dark band where the
+   surface turns, then a highlight — not a two-colour gradient. */
+
+.pro-chip {
+  background: linear-gradient(
+    135deg,
+    #fbeeb4 0%,
+    #e6bb4a 34%,
+    #a97c1c 52%,
+    #f2d883 70%,
+    #c99a2e 100%
+  );
+  color: #2b1d03;
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.6),
+    inset 0 -1px 0 rgb(0 0 0 / 0.28),
+    0 1px 3px rgb(0 0 0 / 0.45);
+}
+
+/* ---- Scrollbars ------------------------------------------------------------ */
+/* The default Windows scrollbar is a light-grey slab that punches a hole in a
+   dark panel. This is the same hairline material as everything else, and it
+   picks up the accent on hover so the thing you are dragging is the thing
+   that lights up. */
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in oklab, white 14%, transparent) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 11px;
+  height: 11px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  border-radius: 99px;
+  /* The transparent border plus background-clip is what makes the visible
+     thumb narrower than its hit area: easy to grab, quiet to look at. */
+  border: 3px solid transparent;
+  background-clip: content-box;
+  background-color: color-mix(in oklab, white 13%, transparent);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: color-mix(in oklab, var(--accent) 60%, transparent);
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* ---- Page header ----------------------------------------------------------- */
+/* A lit tick at the start of the title, so each screen opens the way a chapter
+   does. The rule underneath separates chrome from content without a box. */
+
+.page-title::before {
+  content: "";
+  display: inline-block;
+  width: 3px;
+  height: 0.78em;
+  margin-right: 10px;
+  vertical-align: -0.02em;
+  border-radius: 2px;
+  background: var(--accent);
+  box-shadow: 0 0 12px 0 color-mix(in oklab, var(--accent) 70%, transparent);
+}
+
+/* ==========================================================================
+   5. The icon module
+   ==========================================================================
+   The square in front of every tweak card. It keeps its original footprint —
+   changing the shape would have re-cut the whole list — but it stops being a
+   flat tinted tile and becomes a small piece of hardware: a lit top edge, a
+   dark bottom edge, glass over a gradient, and a backlight cast onto the card
+   behind it. Two custom properties drive the colour, set per card:
+
+     --module-glow : the backlight
+     --led-color   : the status dot (accent normally, gold on a Pro tweak)
+   ========================================================================== */
+
+.icon-module {
+  position: relative;
+  border-radius: 10px;
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  background: var(--surface-2);
+  box-shadow: none;
+  transition:
+    color 150ms ease,
+    border-color 150ms ease;
+}
+.tweak-symbol-fallback svg {
+  width: 24px;
+  height: 24px;
+}
+/* Used by the avatar only. The tweak modules carried one of these too and it
+   read as a defect rather than as status — one indicator per row is enough,
+   and the module's own backlight already separates Pro from free. */
+.icon-led {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--led-color);
+  box-shadow:
+    0 0 0 1px rgb(0 0 0 / 0.4),
+    0 0 5px 0 var(--led-color);
+  transition: box-shadow var(--dur-base) var(--ease-standard);
+}
+
+/* Hovering the card, not the module: the whole row is the target, so the
+   module lighting up is a response to where the user actually is. */
+.group:hover .icon-module {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+/* ---- Account ring ---------------------------------------------------------- */
+/* The avatar already draws a conic rim. This turns it slowly and lays a halo
+   under it, so the one personal element in the chrome feels alive without
+   becoming a distraction. Both are motion, so both stop under Reduce Motion —
+   handled by the global rule in section 3. */
+
+@keyframes ring-turn {
+  to {
+    rotate: 360deg;
+  }
+}
+
+.avatar-ring {
+  animation: ring-turn 14s linear infinite;
+}
+
+.avatar-halo {
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  pointer-events: none;
+  opacity: 0.5;
+  transition:
+    inset var(--dur-slow) var(--ease-standard),
+    opacity var(--dur-slow) var(--ease-standard);
+  box-shadow: 0 0 12px 0 var(--halo-color);
+}
+
+.group:hover .avatar-halo,
+button:hover .avatar-halo {
+  inset: -6px;
+  opacity: 0.95;
+}
+
+/* ---- Switch, off state ------------------------------------------------------ */
+/* The off track used to be `surface-hover`, a step *up* from the card it sits
+   on — so an off switch read as slightly lit. It now sits below the card, and
+   the knob steps down from white, which is what makes on/off legible at a
+   glance rather than only by reading the word next to it. */
+
+.switch-off {
+  background: color-mix(in oklab, black 52%, var(--surface-1));
+  /* The rim is an inset shadow, not a border. A real 1px border shrinks the
+     padding box the knob is positioned against, which pushed the knob a pixel
+     off centre — visible as a lopsided dot in the off state. */
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 0.06),
+    var(--elev-recessed);
+}
+
+.group:hover .switch-off {
+  background: color-mix(in oklab, black 38%, var(--surface-1));
+}
+
+/* Indeterminate progress for Secure Defrag: used only while Windows reports
+   no percentage, so a moving bar never implies a number we do not have. */
+@keyframes defrag-sweep {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(300%);
+  }
+}

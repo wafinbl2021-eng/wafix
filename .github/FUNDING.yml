@@ -1,0 +1,15 @@
+github: AurelioAvila
+custom: ['https://buy.stripe.com/28E3cvdoZdzTdRiedY9Ve00']
+
+# Renders GitHub's own "Sponsor" button in the repo header and in every
+# issue/PR sidebar, alongside the small badge under the download counts in
+# the README.
+#
+# `github:` is what actually makes the button appear. The custom link alone
+# never did, through four different shapes of this file — and the account
+# turned out to have an active Sponsors listing all along, which is the field
+# GitHub resolves natively rather than validating as an arbitrary URL.
+#
+# The custom entry is the Stripe Payment Link for the one-off coffee: a
+# static URL, so it works from a file GitHub renders and from a shipped
+# binary, and its price can be repointed in Stripe without editing either.
