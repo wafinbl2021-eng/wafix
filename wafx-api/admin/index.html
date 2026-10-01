@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="referrer" content="no-referrer" />
+    <title>Wafi X &middot; Catalog admin</title>
+    <link rel="stylesheet" href="/admin/styles.css" />
+    <link rel="icon" href="data:," />
+  </head>
+  <body>
+    <!--
+      No inline script and no inline style: the Content-Security-Policy this
+      Worker sends allows 'self' only, so anything here would be blocked. That
+      is deliberate - a stored value from the database must never be able to
+      become executable markup in the panel.
+    -->
+    <header class="topbar" id="topbar" hidden>
+      <span class="brand">Wafi&nbsp;X</span>
+      <nav class="tabs" id="tabs">
+        <button type="button" class="tab" data-view="categories">Categories</button>
+        <button type="button" class="tab" data-view="apps">Applications</button>
+        <button type="button" class="tab" data-view="releases">Wafi X Releases</button>
+        <button type="button" class="tab" data-view="audit">Audit log</button>
+      </nav>
+      <span class="spacer"></span>
+      <span class="who" id="who"></span>
+      <button type="button" class="ghost" id="signout">Sign out</button>
+    </header>
+
+    <main id="main">
+      <!-- Sign in ------------------------------------------------------------->
+      <section class="card narrow" id="view-login">
+        <h1>Sign in</h1>
+        <form id="login-form" autocomplete="off">
+          <label for="login-username">Username</label>
+          <input id="login-username" name="username" type="text" required minlength="3" maxlength="40" />
+
+          <label for="login-password">Password</label>
+          <input id="login-password" name="password" type="password" required autocomplete="current-password" />
+
+          <button type="submit" class="primary" id="login-submit">Sign in</button>
+        </form>
+        <p class="note" id="login-note">
+          The password is stretched in this page with PBKDF2-SHA256 before it is
+          sent. The Worker never receives it.
+        </p>
+        <p class="error" id="login-error" role="alert" hidden></p>
+      </section>
+
+      <!-- Categories ---------------------------------------------------------->
+      <section class="view" id="view-categories" hidden>
+        <div class="head">
+          <h1>Categories</h1>
+          <button type="button" class="primary" id="new-category">New category</button>
+        </div>
+        <table class="grid" id="categories-table">
+          <thead>
+            <tr><th>Id</th><th>Name</th><th>Order</th><th>Apps</th><th></th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+        <div class="editor" id="category-editor" hidden>
+          <h2 id="category-editor-title">Category</h2>
+          <form id="category-form">
+            <label for="category-id">Id <small>lowercase, hyphens</small></label>
+            <input id="category-id" name="id" type="text" required pattern="[a-z0-9]+(-[a-z0-9]+)*" maxlength="64" />
+            <label for="category-name">Name</label>
+            <input id="category-name" name="name" type="text" required maxlength="80" />
+            <label for="category-sort">Sort order</label>
+            <input id="category-sort" name="sort_order" type="number" value="0" min="-1000" max="1000" />
+            <p class="error" id="category-error" role="alert" hidden></p>
+            <div class="row">
+              <button type="submit" class="primary">Save</button>
+              <button type="button" class="ghost" data-close="category-editor">Cancel</button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <!-- Applications -------------------------------------------------------->
+      <section class="view" id="view-apps" hidden>
+        <div class="head">
+          <h1>Applications</h1>
+          <button type="button" class="primary" id="new-app">New application</button>
+        </div>
+        <table class="grid" id="apps-table">
+          <thead>
+            <tr>
+              <th>Id</th><th>Name</th><th>Category</th><th>Versions</th>
+              <th>Featured</th><th>Published</th><th></th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+
+        <div class="editor" id="app-editor" hidden>
+          <h2 id="app-editor-title">Application</h2>
+          <form id="app-form">
+            <label for="app-id">Id <small>lowercase, hyphens, permanent</small></label>
+            <input id="app-id" name="id" type="text" required pattern="[a-z0-9]+(-[a-z0-9]+)*" maxlength="64" />
+            <label for="app-name">Name</label>
+            <input id="app-name" name="name" type="text" required maxlength="120" />
+            <label for="app-publisher">Publisher</label>
+            <input id="app-publisher" name="publisher" type="text" maxlength="120" />
+            <label for="app-description">Description</label>
+            <textarea id="app-description" name="description" rows="3" maxlength="2000"></textarea>
+            <label for="app-category">Category</label>
+            <select id="app-category" name="category_id"></select>
+            <label for="app-icon-kind">Icon</label>
+            <select id="app-icon-kind" name="icon_kind">
+              <option value="none">None</option>
+              <option value="external">External https URL</option>
+            </select>
+            <label for="app-icon-url">Icon URL</label>
+            <input id="app-icon-url" name="icon_url" type="url" placeholder="https://" />
+            <label for="app-homepage">Homepage</label>
+            <input id="app-homepage" name="homepage_url" type="url" placeholder="https://" />
+            <label for="app-position">Position</label>
+            <input id="app-position" name="position" type="number" value="0" min="-1000" max="1000" />
+            <div class="checks">
+              <label class="check"><input id="app-featured" name="featured" type="checkbox" /> Featured</label>
+              <label class="check"><input id="app-published" name="published" type="checkbox" /> Published</label>
+            </div>
+            <p class="error" id="app-error" role="alert" hidden></p>
+            <div class="row">
+              <button type="submit" class="primary">Save</button>
+              <button type="button" class="ghost" data-close="app-editor">Cancel</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Versions, shown for the selected application -->
+        <div class="editor" id="versions-editor" hidden>
+          <h2>Versions <small id="versions-for"></small></h2>
+          <table class="grid" id="versions-table">
+            <thead>
+              <tr>
+                <th>Version</th><th>Type</th><th>Mode</th><th>SHA-256</th>
+                <th>Published</th><th>Released</th><th></th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+
+          <form id="version-form">
+            <h3>Add a version</h3>
+            <label for="version-number">Version <small>digits and dots</small></label>
+            <input id="version-number" name="version" type="text" required placeholder="1.2.3" />
+            <label for="version-type">Installer type</label>
+            <select id="version-type" name="installer_type">
+              <option value="exe">exe</option>
+              <option value="msi">msi</option>
+            </select>
+            <label for="version-mode">Installer mode</label>
+            <select id="version-mode" name="installer_mode">
+              <option value="interactive">interactive</option>
+              <option value="passive">passive</option>
+              <option value="silent">silent</option>
+            </select>
+            <p class="note small">
+              The mode picks a fixed argument list that ships in the app. There
+              is no field for custom arguments and the API refuses one.
+            </p>
+            <label for="version-url">Installer URL</label>
+            <input id="version-url" name="installer_url" type="url" required placeholder="https://" />
+            <label for="version-sha">SHA-256 <small>optional, 64 hex</small></label>
+            <input id="version-sha" name="installer_sha256" type="text" pattern="[0-9a-fA-F]{64}" maxlength="64" />
+            <label for="version-size">Size in bytes <small>optional</small></label>
+            <input id="version-size" name="installer_size_bytes" type="number" min="1" />
+            <label for="version-date">Release date</label>
+            <input id="version-date" name="release_date" type="date" />
+            <div class="checks">
+              <label class="check"><input id="version-published" name="published" type="checkbox" /> Published</label>
+            </div>
+            <p class="error" id="version-error" role="alert" hidden></p>
+            <div class="row"><button type="submit" class="primary">Add version</button></div>
+          </form>
+        </div>
+      </section>
+
+      <!-- Releases ------------------------------------------------------------>
+      <section class="view" id="view-releases" hidden>
+        <div class="head">
+          <h1>Wafi X Releases</h1>
+          <button type="button" class="primary" id="new-release">New release</button>
+        </div>
+        <p class="note">
+          This table records what has been published. It is
+          <strong>not</strong> what clients download from: installed copies read
+          <code>latest.json</code> from the GitHub release, so a row here cannot
+          change an install.
+        </p>
+        <table class="grid" id="releases-table">
+          <thead>
+            <tr>
+              <th>Version</th><th>Channel</th><th>Published</th><th>Released</th>
+              <th>SHA-256</th><th>Notes</th><th></th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+
+        <div class="editor" id="release-editor" hidden>
+          <h2 id="release-editor-title">Release</h2>
+          <form id="release-form">
+            <label for="release-version">Version <small>semver</small></label>
+            <input id="release-version" name="version" type="text" required placeholder="1.2.3" />
+            <label for="release-channel">Channel</label>
+            <select id="release-channel" name="channel">
+              <option value="stable">stable</option>
+              <option value="beta">beta</option>
+            </select>
+            <label for="release-url">Installer URL</label>
+            <input id="release-url" name="installer_url" type="url" required placeholder="https://" />
+            <label for="release-sha">SHA-256 <small>optional</small></label>
+            <input id="release-sha" name="installer_sha256" type="text" pattern="[0-9a-fA-F]{64}" maxlength="64" />
+            <label for="release-size">Size in bytes <small>optional</small></label>
+            <input id="release-size" name="installer_size_bytes" type="number" min="1" />
+            <label for="release-notes">Notes <small>shown in the update dialog</small></label>
+            <textarea id="release-notes" name="notes" rows="5" maxlength="20000"></textarea>
+            <label for="release-date">Release date</label>
+            <input id="release-date" name="release_date" type="date" />
+            <div class="checks">
+              <label class="check"><input id="release-published" name="published" type="checkbox" /> Published</label>
+            </div>
+            <p class="error" id="release-error" role="alert" hidden></p>
+            <div class="row">
+              <button type="submit" class="primary">Save</button>
+              <button type="button" class="ghost" data-close="release-editor">Cancel</button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <!-- Audit log ----------------------------------------------------------->
+      <section class="view" id="view-audit" hidden>
+        <div class="head">
+          <h1>Audit log</h1>
+          <button type="button" class="ghost" id="reload-audit">Refresh</button>
+        </div>
+        <table class="grid" id="audit-table">
+          <thead>
+            <tr><th>When</th><th>Who</th><th>Action</th><th>Target</th><th>IP</th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </section>
+    </main>
+
+    <div class="toast" id="toast" role="status" hidden></div>
+    <script type="module" src="/admin/app.js"></script>
+  </body>
+</html>

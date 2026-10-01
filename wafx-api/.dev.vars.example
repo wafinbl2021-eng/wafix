@@ -14,6 +14,12 @@
 # Generate one with:  node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 BOOTSTRAP_TOKEN="replace-me-with-32-random-bytes"
 
+# There is no password-pepper or KDF-iteration variable here by design. The
+# password is never sent to the Worker: the panel derives a verifier with
+# PBKDF2-SHA256 in the browser and the Worker stores its SHA-256. The iteration
+# count lives in admins.iterations, per row, so raising it later does not need a
+# redeploy. See "Admin authentication" in README.md for why.
+
 # Personal access token for the GitHub repository that hosts Wafi X releases.
 # Only needed from phase 3, when the panel starts creating GitHub Releases and
 # uploading latest.json. Scope: `contents: write` on that one repository, and

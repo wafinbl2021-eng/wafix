@@ -40,6 +40,10 @@ export default tseslint.config(
       "src-tauri/",
       "node_modules/",
       "backend/",
+      // The Worker has its own config and its own (stricter) tier in
+      // wafx-api/eslint.config.js. Leaving it unignored here would lint it a
+      // second time under the React app's rules, with no React in scope.
+      "wafx-api/",
       "marketing/",
       "site/",
       "scripts/",

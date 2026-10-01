@@ -11,8 +11,24 @@
     "skipLibCheck": true,
     "isolatedModules": true,
     "verbatimModuleSyntax": true,
-    "forceConsistentCasingInFileNames": true
+    "forceConsistentCasingInFileNames": true,
+
+    // The test suites import src/*.ts directly and Node runs them by stripping
+    // types, so anything needing a real transform - enums, namespaces, parameter
+    // properties, `import =` - is a runtime SyntaxError. This makes that a
+    // compile error here, where it is cheap, rather than a test run that fails
+    // on a file nobody was editing.
+    "erasableSyntaxOnly": true,
+
+    // Relative imports carry an explicit `.ts`. Node's type stripper resolves
+    // specifiers itself and does not add extensions, and it needs to be able to
+    // load these same files to run the tests against them. `noEmit` above is what
+    // makes this legal.
+    "allowImportingTsExtensions": true
   },
-  "include": ["src/**/*.ts", "scripts/**/*.ts"],
+  // Only the Worker itself. `scripts/seed-admin.ts` runs in Node and needs the
+  // Node types, so it is checked by tsconfig.test.json instead of being forced
+  // through the Workers-only program and failing on `process` and `node:fs`.
+  "include": ["src/**/*.ts"],
   "exclude": ["node_modules", "admin"]
 }

@@ -25,16 +25,19 @@ is decided in Rust, not here: see `installer_mode` below.
 
 ## Phase status
 
-Phase 0 only. The schema and configuration below are settled and tested; there
-are no routes yet.
+Phase 1. The catalog API, admin authentication and the admin panel are all in
+place; the desktop app has not been pointed at any of it yet.
 
 ```
 migrations/0001_init.sql   schema, verified against real SQLite
-scripts/verify-schema.mjs  40 assertions over that schema
+migrations/0002_*.sql      rate-limit counters, relaxed KDF iteration bound
+scripts/verify-schema.mjs  assertions over the schema
+scripts/seed-admin.ts      creates the first admin from a terminal
 wrangler.toml              bindings + config
 .dev.vars.example          secret names, no values
-src/                       Phase 1
-admin/                     Phase 1
+src/                       Worker: routes, auth, validation, audit
+admin/                     admin panel, served as static assets
+test/                      5 suites, 125 tests, real SQLite
 ```
 
 ## Verify the schema
@@ -78,8 +81,78 @@ reason it is off.
 
 **4. Admin sessions are revocable.** Only the SHA-256 of a session token is
 stored, in an `HttpOnly; Secure; SameSite=Strict` cookie. The token exists once.
-Deleting a row from `admins` cascades to its sessions, so disabling an operator
-takes effect immediately rather than whenever their token happens to expire.
+Sessions are stateful rows rather than JWTs, so setting `admins.disabled = 1`
+logs the account out immediately rather than whenever its token happens to
+expire, and a password change revokes every session the account has.
+
+## Admin authentication, and why the KDF runs in the browser
+
+Passwords are never sent anywhere. The panel derives a **verifier** with
+PBKDF2-SHA256 at 600,000 iterations and sends only that; the Worker stores the
+SHA-256 of the verifier. The plaintext password and the PBKDF2 output both stay
+in the browser tab.
+
+That split is forced by the platform. workerd caps `PBKDF2` at 100,000
+iterations, and Workers Free allows 10ms of CPU per request, so the 600,000
+iterations a password KDF should cost cannot run in the Worker at all. Hashing
+the 32-byte verifier is about 0.3ms, which fits comfortably.
+
+`GET /api/admin/auth/params?username=...` returns the salt and iteration count
+for an account, and a stable decoy salt for a username that does not exist, so
+the response cannot be used to enumerate accounts. `admins.iterations` is stored
+per row, so raising the cost later is a data change rather than a redeploy.
+
+`scripts/seed-admin.ts` performs the same derivation in Node and posts to
+`POST /api/admin/bootstrap`, which is how the first account is created without a
+browser. Only the first account can be created this way: the endpoint refuses
+every later call.
+
+## Routes
+
+Public, no authentication, cacheable:
+
+```
+GET /api/health
+GET /api/apps                    published apps with their published versions
+GET /api/apps/:id
+GET /api/categories
+GET /api/releases/latest         Wafi X release metadata; not the Tauri feed
+GET /api/meta                    feed version + server time
+```
+
+Admin, session cookie plus `X-WAFI-Admin: 1` on anything that changes data:
+
+```
+GET    /api/admin/auth/params          salt + iterations for a username
+POST   /api/admin/bootstrap            first admin only; needs BOOTSTRAP_TOKEN
+POST   /api/admin/login
+POST   /api/admin/logout
+GET    /api/admin/me
+POST   /api/admin/password
+
+GET    /api/admin/categories           POST   /api/admin/categories
+PATCH  /api/admin/categories/:id       DELETE /api/admin/categories/:id
+GET    /api/admin/apps                 POST   /api/admin/apps
+GET    /api/admin/apps/:id             PUT    /api/admin/apps/:id
+DELETE /api/admin/apps/:id
+GET    /api/admin/apps/:id/versions    POST   /api/admin/apps/:id/versions
+PATCH  /api/admin/versions/:id         DELETE /api/admin/versions/:id
+
+GET    /api/admin/releases             POST   /api/admin/releases
+GET    /api/admin/releases/:id         PATCH  /api/admin/releases/:id
+DELETE /api/admin/releases/:id
+GET    /api/admin/audit
+```
+
+The auth endpoints are not all under one prefix: `params` sits at
+`/api/admin/auth/params` while the rest sit directly under `/api/admin`. That
+came from a test that caught `params` registered one segment too deep, and the
+fix moved only that route. It is worth tidying into `/api/admin/auth/*` before
+the surface is frozen, but it is cosmetic and nothing depends on it yet.
+
+`/api/releases/latest` is deliberately not shaped like the Tauri updater
+contract: no `204` for up-to-date, and no signature field. The desktop app reads
+`latest.json` from GitHub Releases instead - see the section at the end.
 
 ## First run
 
@@ -91,6 +164,18 @@ cp .dev.vars.example .dev.vars       # then set BOOTSTRAP_TOKEN
 npm run dev
 ```
 
+Then create the first admin, from a terminal:
+
+```
+export BOOTSTRAP_TOKEN=...           # same value as .dev.vars
+npm run seed:admin -- --username wafi
+```
+
+On PowerShell, set it with `$env:BOOTSTRAP_TOKEN = "..."` first. The password
+is read from a prompt, or from `--password-file`, never from the command line.
+
+or open `http://127.0.0.1:8787/admin/` and use the bootstrap form.
+
 Deploying:
 
 ```
@@ -100,8 +185,22 @@ npm run deploy
 ```
 
 The admin panel is served from `admin/` through Workers Static Assets, which
-needs no bucket and no card. Only the API is a Worker route today; the panel
-appears under `/admin` once phase 1 adds the files.
+needs no bucket and no card. It is same-origin with the API, so there is no CORS
+configuration and the session cookie can be `SameSite=Strict`.
+
+## Checks
+
+```
+npm run check        # typecheck (both configs) + lint + schema + tests
+npm run typecheck    # Worker program and Node test program
+npm run lint         # eslint, strict on src/ and scripts/
+npm run verify:schema
+npm run test         # 125 tests against real SQLite
+```
+
+The tests run on Node's native `node:sqlite`, behind a small shim that presents
+the `D1Database` interface, so they exercise the real SQL - constraints, cascade
+deletes, `CHECK`s - without a Cloudflare account.
 
 ## Moving to your own domain
 

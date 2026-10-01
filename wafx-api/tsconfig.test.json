@@ -1,0 +1,13 @@
+{
+  // The test suites run in Node against `node:sqlite`, and import the Worker
+  // source directly so a test and the code it tests cannot drift apart.
+  //
+  // Two things follow from that. The Node types are needed alongside the Workers
+  // types, and imports must carry explicit `.ts` extensions - Node's type
+  // stripper resolves specifiers itself and does not add extensions.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": ["@cloudflare/workers-types", "node"]
+  },
+  "include": ["src/**/*.ts", "test/**/*.ts", "scripts/**/*.ts"]
+}

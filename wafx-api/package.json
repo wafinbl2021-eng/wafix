@@ -12,18 +12,23 @@
     "deploy": "wrangler deploy",
     "migrate:local": "wrangler d1 migrations apply wafx --local",
     "migrate:remote": "wrangler d1 migrations apply wafx --remote",
-    "seed:admin": "node --experimental-strip-types scripts/seed-admin.ts",
-    "typecheck": "tsc --noEmit",
-    "test": "node --test test/*.test.mjs",
+    "seed:admin": "node scripts/seed-admin.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.test.json --noEmit",
+    "lint": "eslint src test scripts admin",
+    "test": "node --test \"test/*.test.ts\"",
     "verify:schema": "node scripts/verify-schema.mjs",
-    "check": "npm run typecheck && npm run verify:schema"
+    "check": "npm run typecheck && npm run lint && npm run verify:schema && npm run test"
   },
   "dependencies": {
     "hono": "^4.6.14"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20241106.0",
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^24.19.0",
+    "eslint": "^10.11.0",
     "typescript": "^5.9.3",
+    "typescript-eslint": "^8.71.0",
     "wrangler": "^3.99.0"
   }
 }
