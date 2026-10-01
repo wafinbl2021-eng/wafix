@@ -1,0 +1,16 @@
+# Wrangler writes the local D1 database and its schema here. It is a build
+# artefact of `wrangler dev`, never source.
+.wrangler/
+
+# Real secrets. `.dev.vars.example` is the committed template; this is the
+# file you fill in locally and must never be committed.
+.dev.vars
+
+# The worker never runs from node_modules, but tooling here does.
+node_modules/
+
+# Built admin panel, once it moves off the checked-in static files.
+admin/dist/
+
+# Dumps from `wrangler d1 export`
+*.sql.gz

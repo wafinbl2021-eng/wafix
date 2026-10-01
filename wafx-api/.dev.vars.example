@@ -1,0 +1,36 @@
+# Copy to .dev.vars and fill in. .dev.vars is gitignored - never commit it.
+#
+# These are LOCAL secrets for `wrangler dev`. The deployed equivalents are set
+# with `npx wrangler secret put <NAME>` and are NOT read from this file.
+#
+#   wrangler dev    -> reads .dev.vars
+#   wrangler deploy -> reads secrets set via `wrangler secret put`
+
+# One-time token that creates the very first admin. POST /api/admin/bootstrap
+# succeeds only while the admins table is empty, and only when this matches.
+# After the first admin exists the endpoint refuses regardless of the token, so
+# leaking it later buys nothing.
+#
+# Generate one with:  node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+BOOTSTRAP_TOKEN="replace-me-with-32-random-bytes"
+
+# Personal access token for the GitHub repository that hosts Wafi X releases.
+# Only needed from phase 3, when the panel starts creating GitHub Releases and
+# uploading latest.json. Scope: `contents: write` on that one repository, and
+# nothing else.
+#
+# Why GitHub and not the Worker: src-tauri/src/update_identity.rs pins both the
+# artifact filename prefix and the download host to a github.com release URL, so
+# the updater feed cannot move without a deliberate change to that file. The
+# panel publishes to GitHub and records the result in wafx_releases.
+# GITHUB_PAT="github_pat_..."
+
+# Uncomment only to test against a real GitHub repo from `wrangler dev`.
+# Without it, publishing is a no-op that returns the payload it would have sent,
+# which is what you want locally: no accidental release from a dev machine.
+# GITHUB_REPO="owner/repo"
+
+# Where the admin panel is reached from. Must match [vars] PUBLIC_ORIGIN in
+# wrangler.toml. Kept here as well so a dev session can point somewhere else
+# (a tunnel, another worker) without editing the committed config.
+# PUBLIC_ORIGIN="http://localhost:8787"

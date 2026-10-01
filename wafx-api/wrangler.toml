@@ -1,0 +1,98 @@
+# Wafi X API - Cloudflare Worker configuration.
+#
+# No account_id is committed. `wrangler whoami` prints yours; add it under
+# [account_id] if you want `wrangler deploy` to stop asking. Everything else
+# here works from a bare workers.dev subdomain, which is the point: no custom
+# domain, no paid plan, no card.
+#
+# The desktop app never hardcodes this host. It reads
+#   VITE_WAFX_API (build time, with a workers.dev default)
+# and the CSP in src-tauri/tauri.conf.json lists whatever host is in use. Move
+# to your own domain by changing [vars] and that one CSP entry - nothing else in
+# the codebase refers to a hostname.
+
+name = "wafx-api"
+main = "src/index.ts"
+compatibility_date = "2026-09-01"
+
+# The free *.workers.dev subdomain. This is what decision 5 asks for during
+# development: no domain purchase, and swapping to a real domain later is a
+# [vars] change plus a DNS record.
+workers_dev = true
+
+# ---------------------------------------------------------------------------
+# Bindings
+# ---------------------------------------------------------------------------
+
+[[d1_databases]]
+# Binding name is what the Worker code binds to. The database itself is created
+# once, by hand:
+#   npx wrangler d1 create wafx
+# and the id it prints goes in the line below. This is deliberately not created
+# by a script, because the id is the one value here that cannot be known in
+# advance.
+binding = "DB"
+database_name = "wafx"
+database_id = "REPLACE_WITH_THE_ID_WRANGLER_PRINTED"
+
+# ---------------------------------------------------------------------------
+# Static assets
+# ---------------------------------------------------------------------------
+#
+# Workers Static Assets, not R2. The admin panel is a few kilobytes of HTML/JS/CSS
+# and this needs no bucket, no binding and no card, so it is the right tier for
+# "free as far as possible". R2 stays reserved for installer binaries in a later
+# phase, when there is actually a reason to store bytes rather than link to them.
+[assets]
+directory = "./admin"
+binding = "ASSETS"
+not_found_handling = "404"
+run_worker_first = ["/api/*"]
+
+# ---------------------------------------------------------------------------
+# Vars
+# ---------------------------------------------------------------------------
+#
+# Non-secret configuration only. Anything sensitive (BOOTSTRAP_TOKEN,
+# GITHUB_PAT) belongs in a secret, not here:
+#   npx wrangler secret put BOOTSTRAP_TOKEN
+#
+# The public origin the admin panel is served from. Sent as a header on API
+# responses and used to reject requests that claim a different Origin, which is
+# the second half of the CSRF defence (SameSite=Strict on the cookie is the
+# first). Change this with the domain.
+[vars]
+PUBLIC_ORIGIN = "https://wafx-api.YOUR-SUBSERNAME.workers.dev"
+
+# How long an admin session cookie stays valid. Rotated on every request; the
+# stored expires_at is refreshed to now + this.
+SESSION_TTL_HOURS = "12"
+
+# Per-IP login allowance. Ten is generous for one operator and still turns a
+# password-guessing script into a multi-day job.
+LOGIN_MAX_ATTEMPTS = "10"
+LOGIN_WINDOW_MINUTES = "15"
+
+# ---------------------------------------------------------------------------
+# R2, when it is actually needed
+# ---------------------------------------------------------------------------
+#
+# Intentionally NOT enabled. Creating an R2 bucket requires adding a payment
+# method even on the free tier, and phase 1 uses external https links only.
+# The schema already supports r2 (see app_versions.installer_url_kind), so
+# turning this on later is uncommenting the block below, adding the binding to
+# the Worker, and writing a different value into two existing columns. No
+# migration, no change to the desktop app.
+#
+# [[r2_buckets]]
+# binding = "ASSETS_BUCKET"
+# bucket_name = "wafx-assets"
+# preview_bucket_name = "wafx-assets-preview"
+
+# ---------------------------------------------------------------------------
+# Observability
+# ---------------------------------------------------------------------------
+# Off by default. Enable when something is actually wrong and you want to read
+# the request log; leave off otherwise.
+[observability]
+enabled = false
