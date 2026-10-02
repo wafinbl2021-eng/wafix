@@ -42,6 +42,7 @@ mod hud;
 // provider yields events on a given machine.
 pub mod fps;
 mod hud_window;
+mod installer;
 #[cfg(test)]
 mod ipc_commands;
 #[cfg(test)]
@@ -72,6 +73,7 @@ mod thermals;
 mod turbo;
 mod tweaks;
 mod updatewatch;
+mod wafx;
 mod x3d;
 mod zerotrace;
 
@@ -1693,7 +1695,13 @@ pub fn run() {
             cookies::set_cookie_whitelist,
             scheduledtasks::list_scheduled_tasks,
             scheduledtasks::set_scheduled_task_enabled,
-            netmaintenance::flush_dns_cache
+            netmaintenance::flush_dns_cache,
+            // Wafi X Applications: catalog reads plus the install pipeline.
+            // The renderer names an app and a version. Rust resolves the URL
+            // and the checksum itself.
+            wafx::list_wafx_apps,
+            wafx::list_wafx_categories,
+            wafx::install_wafx_app
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

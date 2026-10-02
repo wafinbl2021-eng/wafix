@@ -321,3 +321,34 @@ export function HistoryIcon({ className }: { className?: string }) {
     </svg>
   );
 }
+
+/**
+ * Tiles for Applications: a launcher grid.
+ *
+ * Deliberately not the Layers stack already used for Profiles — two adjacent
+ * sections whose glyphs look alike cost more than the two extra path nodes a
+ * distinct shape costs here.
+ */
+export function AppsIcon({ className }: { className?: string }) {
+  const tile = (x: number, y: number, opacity: number) => (
+    <rect
+      x={x}
+      y={y}
+      width="7.4"
+      height="7.4"
+      rx="2"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      fill="currentColor"
+      fillOpacity={opacity}
+    />
+  );
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className}>
+      {tile(3.4, 3.4, 0.22)}
+      {tile(13.2, 3.4, 0.12)}
+      {tile(3.4, 13.2, 0.12)}
+      {tile(13.2, 13.2, 0.22)}
+    </svg>
+  );
+}

@@ -27,7 +27,10 @@ export type Section =
   | "debloat"
   | "profiles"
   | "pricing"
-  | "ledger";
+  | "ledger"
+  /** The Wafi X catalog screen. Not a tweak category: nothing here is applied
+   *  to the registry, and none of it is reversible through the ledger. */
+  | "applications";
 
 export type TweakInfo = {
   id: string;
@@ -460,6 +463,75 @@ export type CleanupPreview = {
   truncated: boolean;
   accessible: boolean;
 };
+
+/* ---------------- Wafi X Applications (src-tauri/src/wafx.rs) -------------- */
+
+/** The closed container types the catalog may name. Rust refuses anything
+ *  else before it downloads a byte, so this union is the whole vocabulary. */
+export type WafxInstallerType = "exe" | "msi";
+
+/** The closed mode vocabulary. Rust turns one of these into a fixed argument
+ *  vector (src-tauri/src/installer.rs); there is no path from the network to
+ *  an arbitrary command line. */
+export type WafxInstallerMode = "silent" | "passive" | "interactive";
+
+export type WafxVersion = {
+  id: string;
+  version: string;
+  installer_type: WafxInstallerType;
+  installer_mode: WafxInstallerMode;
+  /** Null when the catalog published no checksum, which means this version
+   *  cannot be installed: Rust refuses rather than skipping verification. */
+  installer_sha256: string | null;
+  installer_size_bytes: number | null;
+  release_date: string | null;
+};
+
+export type WafxApp = {
+  id: string;
+  name: string;
+  description: string;
+  publisher: string;
+  /** "none" when the panel has no icon yet, in which case the card draws the
+   *  category glyph instead. */
+  icon_kind: string;
+  /** The icon already fetched by Rust and inlined as a `data:` URL. The
+   *  address it came from is never sent here: the webview has no CSP entry for
+   *  vendor hosts, and being handed one would be a standing reason to contact
+   *  whatever host a catalog row names. */
+  icon_data: string | null;
+  homepage_url: string | null;
+  featured: boolean;
+  category_id: string | null;
+  category_name: string | null;
+  /** Newest published first, exactly as the catalog orders them. */
+  versions: WafxVersion[];
+  latest_version: string | null;
+};
+
+export type WafxCategory = { id: string; name: string; app_count: number };
+
+/** Emitted by Rust as `wafx-download-progress` while an installer arrives.
+ *  `total`/`percent` are null when the server sent no length, which is a
+ *  "cannot tell" and not a zero. */
+export type WafxDownloadProgress = {
+  app_id: string;
+  version_id: string;
+  downloaded: number;
+  total: number | null;
+  percent: number | null;
+};
+
+/** Which step Rust is on, emitted as `wafx-install-phase`. Sent rather than
+ *  derived: a download can be skipped when a verified copy is already on disk,
+ *  and re-verifying a large installer can take longer than the download. */
+export type WafxInstallPhaseEvent = {
+  app_id: string;
+  version_id: string;
+  phase: "download" | "verify" | "install";
+};
+
+export type WafxInstallResult = { exit_code: number | null; success: boolean };
 
 /** One cache-coherent CPU die, from Rust `x3d::Ccd`. */
 export type Ccd = {

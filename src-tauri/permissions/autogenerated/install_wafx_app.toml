@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-install-wafx-app"
+description = "Enables the install_wafx_app command without any pre-configured scope."
+commands.allow = ["install_wafx_app"]
+
+[[permission]]
+identifier = "deny-install-wafx-app"
+description = "Denies the install_wafx_app command without any pre-configured scope."
+commands.deny = ["install_wafx_app"]

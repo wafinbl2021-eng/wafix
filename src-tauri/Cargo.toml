@@ -38,6 +38,15 @@ tauri-plugin-updater = "2"
 tauri-plugin-process = "2"
 ed25519-dalek = "2"
 base64 = "0.22"
+# Wafi X Applications: fetch the published catalog, download an installer and
+# verify it. `reqwest` is already in the tree via tauri-plugin-updater (same
+# 0.13 line, rustls TLS), so this does not add a second TLS stack; `stream`
+# gives the chunked download, `json` the catalog parsing. `sha2` is the only
+# new hashing primitive. `tokio` is named directly because the download writes
+# with its async file API rather than blocking the runtime.
+reqwest = { version = "0.13", features = ["json", "stream"] }
+sha2 = "0.10"
+tokio = { version = "1", features = ["fs", "io-util"] }
 
 [target.'cfg(windows)'.dependencies]
 winreg = "0.52"

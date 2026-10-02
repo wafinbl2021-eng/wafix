@@ -204,15 +204,28 @@ deletes, `CHECK`s - without a Cloudflare account.
 
 ## Moving to your own domain
 
-Nothing in the codebase names a hostname. Two places carry the current one:
+Nothing in the codebase names a hostname. **One** place carries it:
 
 - `[vars] PUBLIC_ORIGIN` in `wrangler.toml`
-- `connect-src` in `src-tauri/tauri.conf.json`
 
-They must change together. The CSP is a literal, not derived from an env var, so
-a build pointing `VITE_WAFX_API` somewhere new while the CSP still lists the old
-host fails at runtime with a CSP violation that surfaces as an unhelpful network
-error.
+The desktop app does not need a matching edit. An earlier draft of this README
+said the `connect-src` entry in `src-tauri/tauri.conf.json` had to move too; it
+does not, because the desktop app never talks to this API from the webview.
+
+`src-tauri/src/wafx.rs` fetches the catalog with `reqwest` in Rust and hands the
+webview parsed data. No request to `api.wafix.app` originates from the webview,
+so the CSP has no entry to change and stays exactly as PC Tweaker shipped it.
+Two consequences worth knowing:
+
+- The host the client uses is resolved by `wafx::api_base()` — runtime
+  `WAFX_API_BASE`, then the compile-time `WAFX_API_BASE` or `VITE_WAFX_API`,
+  then `DEFAULT_WAFX_API_BASE`. Override it at run time and nothing recompiles.
+- If that host ever moves, the only stale value is `DEFAULT_WAFX_API_BASE` in
+  `wafx.rs`, and only if you rely on the default.
+
+This is also why catalog icons are fetched in Rust and delivered as `data:`
+URLs. A `data:` URL is already permitted by `img-src`, so no host is added to
+the CSP and the webview is never given a reason to contact a vendor's CDN.
 
 ## Relationship to the desktop updater
 

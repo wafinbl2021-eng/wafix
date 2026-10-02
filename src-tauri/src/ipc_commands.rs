@@ -119,4 +119,7 @@ pub const APP_COMMANDS: &[&str] = &[
     "list_scheduled_tasks",
     "set_scheduled_task_enabled",
     "flush_dns_cache",
+    "list_wafx_apps",
+    "list_wafx_categories",
+    "install_wafx_app",
 ];

@@ -93,6 +93,25 @@ export interface Strings {
     profiles: string;
     pricing: string;
     ledger: string;
+    applications: string;
+  };
+  /** The Wafi X catalog screen (src/components/applications.tsx). Every
+   *  string the panel needs, including the four install states, because they
+   *  are what the user is looking at while a download runs. */
+  applications: {
+    subtitle: string;
+    allCategories: string;
+    loading: string;
+    empty: string;
+    loadFailed: string;
+    retry: string;
+    install: string;
+    downloading: string; // "Downloading {percent}"
+    verifying: string;
+    installing: string;
+    installed: string;
+    noVersion: string;
+    version: string; // "Version {version}"
   };
   healthPanel: {
     title: string;
@@ -1010,6 +1029,22 @@ const it: Strings = {
     profiles: "Profili",
     pricing: "Piani e prezzi",
     ledger: "Cronologia modifiche",
+    applications: "Applicazioni",
+  },
+  applications: {
+    subtitle: "Installa e aggiorna le applicazioni che usi già.",
+    allCategories: "Tutte",
+    loading: "Caricamento del catalogo…",
+    empty: "Nessuna applicazione pubblicata.",
+    loadFailed: "Non è stato possibile raggiungere il catalogo.",
+    retry: "Riprova",
+    install: "Installa",
+    downloading: "Download {percent}",
+    verifying: "Verifica in corso",
+    installing: "Installazione…",
+    installed: "Installata",
+    noVersion: "Nessuna versione pubblicata",
+    version: "Versione {version}",
   },
   healthPanel: {
     title: "Salute del PC",
@@ -2368,6 +2403,22 @@ const en: Strings = {
     profiles: "Profiles",
     pricing: "Plans & pricing",
     ledger: "Change history",
+    applications: "Applications",
+  },
+  applications: {
+    subtitle: "Install and update the applications you already run.",
+    allCategories: "All",
+    loading: "Loading the catalog…",
+    empty: "No applications published yet.",
+    loadFailed: "The catalog could not be reached.",
+    retry: "Retry",
+    install: "Install",
+    downloading: "Downloading {percent}",
+    verifying: "Verifying",
+    installing: "Installing…",
+    installed: "Installed",
+    noVersion: "No published version",
+    version: "Version {version}",
   },
   healthPanel: {
     title: "PC Health",
@@ -3713,6 +3764,22 @@ const fr: Strings = {
     profiles: "Profils",
     pricing: "Offres et tarifs",
     ledger: "Historique des modifications",
+    applications: "Applications",
+  },
+  applications: {
+    subtitle: "Installez et mettez à jour les applications que vous utilisez déjà.",
+    allCategories: "Toutes",
+    loading: "Chargement du catalogue…",
+    empty: "Aucune application publiée pour le moment.",
+    loadFailed: "Le catalogue est injoignable.",
+    retry: "Réessayer",
+    install: "Installer",
+    downloading: "Téléchargement {percent}",
+    verifying: "Vérification",
+    installing: "Installation…",
+    installed: "Installée",
+    noVersion: "Aucune version publiée",
+    version: "Version {version}",
   },
   healthPanel: {
     title: "Santé du PC",
@@ -5077,6 +5144,22 @@ const es: Strings = {
     profiles: "Perfiles",
     pricing: "Planes y precios",
     ledger: "Historial de cambios",
+    applications: "Aplicaciones",
+  },
+  applications: {
+    subtitle: "Instala y actualiza las aplicaciones que ya usas.",
+    allCategories: "Todas",
+    loading: "Cargando el catálogo…",
+    empty: "Todavía no hay aplicaciones publicadas.",
+    loadFailed: "No se pudo contactar con el catálogo.",
+    retry: "Reintentar",
+    install: "Instalar",
+    downloading: "Descargando {percent}",
+    verifying: "Verificando",
+    installing: "Instalando…",
+    installed: "Instalada",
+    noVersion: "Sin versión publicada",
+    version: "Versión {version}",
   },
   healthPanel: {
     title: "Salud del PC",
@@ -6436,6 +6519,22 @@ const de: Strings = {
     profiles: "Profile",
     pricing: "Tarife & Preise",
     ledger: "Änderungsverlauf",
+    applications: "Anwendungen",
+  },
+  applications: {
+    subtitle: "Installiere und aktualisiere die Programme, die du bereits nutzt.",
+    allCategories: "Alle",
+    loading: "Katalog wird geladen…",
+    empty: "Noch keine Programme veröffentlicht.",
+    loadFailed: "Der Katalog war nicht erreichbar.",
+    retry: "Erneut versuchen",
+    install: "Installieren",
+    downloading: "Wird heruntergeladen {percent}",
+    verifying: "Wird geprüft",
+    installing: "Wird installiert…",
+    installed: "Installiert",
+    noVersion: "Keine veröffentlichte Version",
+    version: "Version {version}",
   },
   healthPanel: {
     title: "PC-Zustand",
@@ -7800,6 +7899,22 @@ const pt: Strings = {
     profiles: "Perfis",
     pricing: "Planos e preços",
     ledger: "Histórico de alterações",
+    applications: "Aplicativos",
+  },
+  applications: {
+    subtitle: "Instale e atualize as aplicações que já usa.",
+    allCategories: "Todas",
+    loading: "A carregar o catálogo…",
+    empty: "Ainda não há aplicações publicadas.",
+    loadFailed: "Não foi possível contactar o catálogo.",
+    retry: "Tentar novamente",
+    install: "Instalar",
+    downloading: "A transferir {percent}",
+    verifying: "A verificar",
+    installing: "A instalar…",
+    installed: "Instalada",
+    noVersion: "Sem versão publicada",
+    version: "Versão {version}",
   },
   healthPanel: {
     title: "Saúde do PC",

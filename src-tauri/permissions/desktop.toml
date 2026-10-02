@@ -120,4 +120,7 @@ permissions = [
     "allow-list-scheduled-tasks",
     "allow-set-scheduled-task-enabled",
     "allow-flush-dns-cache",
+    "allow-list-wafx-apps",
+    "allow-list-wafx-categories",
+    "allow-install-wafx-app",
 ]

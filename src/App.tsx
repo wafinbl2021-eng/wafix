@@ -21,6 +21,7 @@ import {
 } from "./lib";
 import { AuthState, CleanupInfo, CleanupResult, Section, Toast, TweakInfo } from "./types";
 import {
+  AppsIcon,
   GemIcon,
   HistoryIcon,
   LayersIcon,
@@ -75,6 +76,7 @@ import { CATEGORY_STYLE } from "./categories";
 import { OverviewPanel } from "./components/overview";
 import { WorkspaceSidebar } from "./components/workspace-sidebar";
 import { DebloatPanel } from "./components/debloat";
+import { ApplicationsPanel } from "./components/applications";
 import { AdvancedControlCard } from "./components/advanced-controls";
 import { CONFIGURABLE_TWEAK_IDS, isCurrentCatalogTweak } from "./catalog";
 import "./App.css";
@@ -386,6 +388,11 @@ function App() {
     { key: "profiles", label: s.tabs.profiles, icon: <LayersIcon className="h-[18px] w-[18px]" /> },
     { key: "ledger", label: s.tabs.ledger, icon: <HistoryIcon className="h-[18px] w-[18px]" /> },
     { key: "pricing", label: s.tabs.pricing, icon: <GemIcon className="h-[18px] w-[18px]" /> },
+    {
+      key: "applications",
+      label: s.tabs.applications,
+      icon: <AppsIcon className="h-[18px] w-[18px]" />,
+    },
   ];
 
   const [tweaks, setTweaks] = useState<TweakInfo[]>([]);
@@ -632,6 +639,10 @@ function App() {
   const showPricing = filter === "pricing" && !searching;
   const showProfiles = filter === "profiles" && !searching;
   const showLedger = FEATURE_INTELLIGENCE && filter === "ledger" && !searching;
+  // The catalog screen shows applications, not tweaks, so the applied-count
+  // line and the tweak search box would both describe a list that is not on
+  // screen. The section header uses `currentLabel` like every other section.
+  const showApplications = filter === "applications" && !searching;
   const turboBoostApplied = tweaks.find((t) => t.id === "turbo_boost")?.applied ?? false;
   const catalogTweaks = tweaks.filter((t) => isCurrentCatalogTweak(t.id));
   const appliedCount = catalogTweaks.filter(
@@ -704,30 +715,40 @@ function App() {
                 {!showPricing && filter !== "debloat" && (
                   <h1 className="type-page page-title">{currentLabel}</h1>
                 )}
-                {/* Overview and Startup provide their own counts. */}
-                {!showOverview && !showStartup && !showPricing && filter !== "debloat" && (
-                  <div className="mt-1 flex items-center gap-3">
-                    <p className="text-ink-3 type-data text-[12.5px]">
-                      {format(s.appliedCount, {
-                        applied: appliedCount,
-                        total: catalogTweaks.length,
-                      })}
-                    </p>
-                    {/* Restore supported settings from their saved values. */}
-                    {restorableCount > 0 && (
-                      <button
-                        onClick={() => setConfirmRestore(true)}
-                        disabled={restoring}
-                        className="flex items-center gap-1.5 rounded-lg border border-line bg-surface-2 px-2.5 py-1 text-xs font-semibold text-ink-2 transition-colors hover:border-line-2 hover:bg-surface-hover hover:text-white disabled:cursor-wait disabled:opacity-60"
-                      >
-                        <UndoIcon className="h-3.5 w-3.5" />
-                        {restoring ? s.restore.running : s.restore.button}
-                      </button>
-                    )}
-                  </div>
+                {showApplications && (
+                  <p className="mt-1 text-ink-3 type-data text-[12.5px]">
+                    {s.applications.subtitle}
+                  </p>
                 )}
+                {/* Overview and Startup provide their own counts; the catalog
+                  screen has no tweaks to count. */}
+                {!showOverview &&
+                  !showStartup &&
+                  !showPricing &&
+                  !showApplications &&
+                  filter !== "debloat" && (
+                    <div className="mt-1 flex items-center gap-3">
+                      <p className="text-ink-3 type-data text-[12.5px]">
+                        {format(s.appliedCount, {
+                          applied: appliedCount,
+                          total: catalogTweaks.length,
+                        })}
+                      </p>
+                      {/* Restore supported settings from their saved values. */}
+                      {restorableCount > 0 && (
+                        <button
+                          onClick={() => setConfirmRestore(true)}
+                          disabled={restoring}
+                          className="flex items-center gap-1.5 rounded-lg border border-line bg-surface-2 px-2.5 py-1 text-xs font-semibold text-ink-2 transition-colors hover:border-line-2 hover:bg-surface-hover hover:text-white disabled:cursor-wait disabled:opacity-60"
+                        >
+                          <UndoIcon className="h-3.5 w-3.5" />
+                          {restoring ? s.restore.running : s.restore.button}
+                        </button>
+                      )}
+                    </div>
+                  )}
               </div>
-              {!showPricing && filter !== "debloat" && (
+              {!showPricing && !showApplications && filter !== "debloat" && (
                 <div className="relative ml-auto w-56 shrink-0">
                   <MagnifierIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-3" />
                   <input
@@ -903,6 +924,8 @@ function App() {
             </div>
 
             {showStartup && <ScheduledTaskManager s={s} pushToast={pushToast} />}
+
+            {showApplications && <ApplicationsPanel s={s} pushToast={pushToast} />}
 
             {showProfiles && (
               <ProfilesPanel

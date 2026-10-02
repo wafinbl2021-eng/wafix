@@ -337,6 +337,12 @@ const REVIEWED_AS_CORRECT = new Set([
   "fr:systemRepair.underMinute",
   "es:systemRepair.underMinute",
   "pt:systemRepair.underMinute",
+  // "Applications" and "Version" are the same words in French, and "Version"
+  // is the same word in German, as in English. A translated form here would be
+  // less familiar to the reader, not more.
+  "fr:tabs.applications",
+  "fr:applications.version",
+  "de:applications.version",
 ]);
 
 const unexplained = untranslated.filter((r) => !REVIEWED_AS_CORRECT.has(`${r.locale}:${r.key}`));

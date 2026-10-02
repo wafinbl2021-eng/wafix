@@ -32,7 +32,7 @@ export function WorkspaceSidebar({
     },
     { label: s.tabs.groupMonitor, keys: ["scan", "health", "hardware"] },
     { label: s.tabs.groupOptimize, keys: ["debloat", "performance", "gaming", "privacy", "ui"] },
-    { label: s.tabs.groupManage, keys: ["startup", "manutenzione"] },
+    { label: s.tabs.groupManage, keys: ["startup", "manutenzione", "applications"] },
   ];
 
   return (

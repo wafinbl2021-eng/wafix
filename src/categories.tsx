@@ -32,6 +32,7 @@ export const NAV_ACCENT: Record<string, string> = {
   profiles: "text-indigo-300",
   ledger: "text-blue-300",
   pricing: "text-yellow-300",
+  applications: "text-lime-300",
 };
 
 export const CATEGORY_STYLE: Record<

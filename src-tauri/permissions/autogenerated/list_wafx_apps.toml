@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-list-wafx-apps"
+description = "Enables the list_wafx_apps command without any pre-configured scope."
+commands.allow = ["list_wafx_apps"]
+
+[[permission]]
+identifier = "deny-list-wafx-apps"
+description = "Denies the list_wafx_apps command without any pre-configured scope."
+commands.deny = ["list_wafx_apps"]

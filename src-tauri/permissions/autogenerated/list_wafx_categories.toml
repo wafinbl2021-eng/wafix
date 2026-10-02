@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-list-wafx-categories"
+description = "Enables the list_wafx_categories command without any pre-configured scope."
+commands.allow = ["list_wafx_categories"]
+
+[[permission]]
+identifier = "deny-list-wafx-categories"
+description = "Denies the list_wafx_categories command without any pre-configured scope."
+commands.deny = ["list_wafx_categories"]
