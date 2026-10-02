@@ -85,10 +85,24 @@ describe("unknown routes", () => {
     const h = harness();
     try {
       // The panel is a single-page app with client-side routing, so a bare 404 is
-      // correct here. Serving index.html for everything would turn a typo in a URL
+      // correct here. Serving the shell for everything would turn a typo in a URL
       // into a page that looks like a working panel.
-      const { status } = await h.json("/");
-      assert.equal(status, 404);
+      //
+      // Asserted with the ASSETS binding in place, because /admin is served by
+      // the Worker while every other path is served by the asset router - and
+      // it is the asset router that answers /. That is also why the shell is
+      // named panel.html rather than index.html: as index.html the router would
+      // publish it at the site root before the Worker ever saw the request.
+      h.env.ASSETS = {
+        fetch: (request: Request) =>
+          new Response(`served: ${new URL(request.url).pathname}`, {
+            headers: { "content-type": "text/html" },
+          }),
+      };
+      for (const path of ["/", "/panel.html"]) {
+        const { status } = await h.json(path);
+        assert.equal(status, 404, path);
+      }
     } finally {
       h.close();
     }
@@ -152,8 +166,90 @@ describe("security headers", () => {
       };
       const response = await h.request("/admin");
       assert.equal(response.status, 200);
-      assert.equal(await response.text(), "served: /admin/index.html");
+      // The mount point is /admin; the asset is not. Asserting the mount point
+      // here is what let every panel URL 404 in production while this passed.
+      assert.equal(await response.text(), "served: /panel.html");
       assert.ok((response.headers.get("Content-Security-Policy") ?? "").includes("default-src 'none'"));
+    } finally {
+      h.close();
+    }
+  });
+
+  test("a panel asset is fetched from the root, where wrangler mounts it", async () => {
+    const h = harness();
+    try {
+      // These three paths are what admin/panel.html actually links to. If any of
+      // them is served from /admin/<file> instead of /<file>, the panel renders
+      // unstyled with no script and the failure looks like a blank page.
+      for (const [mount, asset] of [
+        ["/admin/styles.css", "/styles.css"],
+        ["/admin/app.js", "/app.js"],
+        ["/admin/panel.html", "/panel.html"],
+      ] as const) {
+        const requested: string[] = [];
+        h.env.ASSETS = {
+          fetch: (request: Request) => {
+            requested.push(new URL(request.url).pathname);
+            return new Response("ok", { headers: { "content-type": "text/plain" } });
+          },
+        };
+        const response = await h.request(mount);
+        assert.equal(response.status, 200, mount);
+        assert.deepEqual(requested, [asset], mount);
+      }
+    } finally {
+      h.close();
+    }
+  });
+
+  test("a panel route with no file extension falls back to the shell", async () => {
+    const h = harness();
+    try {
+      const requested: string[] = [];
+      h.env.ASSETS = {
+        fetch: (request: Request) => {
+          requested.push(new URL(request.url).pathname);
+          return new Response("ok", { headers: { "content-type": "text/html" } });
+        },
+      };
+      // Client-side routing: /admin/catalog is a view, not a file. And /admin/
+      // is the mount point with a trailing slash, which must not fall through to
+      // a request for the directory itself.
+      for (const mount of ["/admin/", "/admin/catalog"]) {
+        requested.length = 0;
+        const response = await h.request(mount);
+        assert.equal(response.status, 200, mount);
+        assert.deepEqual(requested, ["/panel.html"], mount);
+      }
+    } finally {
+      h.close();
+    }
+  });
+
+  test("stamps security headers on an asset response whose headers are immutable", async () => {
+    const h = harness();
+    try {
+      // A Response produced by fetch() carries an immutable header guard, and so
+      // does the one the assets binding hands back. Setting a header on one throws
+      // "Can't modify immutable headers", so unless the route rebuilds the response
+      // the middleware blows up and every panel file becomes a 500. That is what
+      // happened, unnoticed, because the only test that touched the asset path used
+      // a stand-in built with `new Response`, which is always mutable.
+      //
+      // Response.redirect() is the portable way to get an immutable one.
+      assert.throws(() => {
+        const probe = Response.redirect("http://example.invalid/x", 302);
+        probe.headers.set("X-Probe", "1");
+      }, "premise: a redirect Response must have immutable headers, or this test asserts nothing");
+
+      h.env.ASSETS = { fetch: () => Response.redirect("http://example.invalid/x", 302) };
+      const response = await h.request("/admin");
+      // Reaching a response at all is the assertion. The status is the one the
+      // stand-in returned, which is not the point; the point is that the
+      // middleware got to stamp it.
+      assert.equal(response.status, 302);
+      assert.ok((response.headers.get("Content-Security-Policy") ?? "").includes("default-src 'none'"));
+      assert.equal(response.headers.get("X-Frame-Options"), "DENY");
     } finally {
       h.close();
     }

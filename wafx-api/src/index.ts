@@ -126,28 +126,47 @@ app.route("/api", guarded(catalogRoutes));
 app.route("/api", guarded(releaseRoutes));
 
 /**
- * The panel's static files, with an SPA fallback to index.html.
+ * The panel's static files, with an SPA fallback to panel.html.
  *
  * `ASSETS` is only bound when `[assets]` is configured in wrangler.toml. Without
  * it the Worker returns a plain message rather than a stack trace, so a
  * misconfigured deploy is obvious without leaking anything.
+ *
+ * The mount point the browser sees is /admin, but `directory = "./admin"` puts
+ * the assets at the root, so the file behind /admin/styles.css is /styles.css.
+ * The two disagree by exactly one segment, and the translation is done here
+ * rather than at each call site so that no asset can be served under a prefix
+ * it does not have - which is exactly what broke this once, with every panel
+ * URL 404ing and no test noticing, because the one test that covered it
+ * asserted the wrong path rather than the served one.
+ *
+ * The shell is panel.html, not index.html, on purpose. The assets router serves
+ * index.html at / before the Worker is consulted, so naming it index.html
+ * would publish the panel shell at the site root - a second, unlinked way in
+ * that the /admin mount point is supposed to be the only one of.
  */
-app.get("/admin", (c) => servePanel(c, "/admin/index.html"));
-app.get("/admin/*", (c) => {
-  const path = new URL(c.req.url).pathname;
-  // A path under /admin whose last segment contains a dot is a request for a
-  // file. Serving index.html for those would make a missing script look like a
-  // blank page with no 404 to explain it.
-  const last = path.slice(path.lastIndexOf("/") + 1);
-  return servePanel(c, last.includes(".") ? path : "/admin/index.html");
-});
+app.get("/admin", (c) => servePanel(c, "/admin"));
+app.get("/admin/*", (c) => servePanel(c, new URL(c.req.url).pathname));
 
-async function servePanel(c: Context<AdminEnv>, asset: string): Promise<Response> {
+async function servePanel(c: Context<AdminEnv>, mount: string): Promise<Response> {
   const assets = c.env.ASSETS;
   if (assets === undefined) {
     return c.json({ error: { code: "not_found", message: "Admin panel is not deployed" } }, 404);
   }
-  return assets.fetch(new Request(new URL(asset, c.req.url)));
+  // /admin itself and /admin/ both land on the shell.
+  const path = mount.slice("/admin".length) || "/panel.html";
+  // A path whose last segment contains a dot is a request for a file. Serving
+  // the shell for those would make a missing script look like a blank page
+  // with no 404 to explain it.
+  const last = path.slice(path.lastIndexOf("/") + 1);
+  const asset = last.includes(".") ? path : "/panel.html";
+  const response = await assets.fetch(new Request(new URL(asset, c.req.url)));
+  // The assets binding hands back a response with an immutable header guard, so
+  // the security-headers middleware cannot stamp it and throws "Can't modify
+  // immutable headers" instead, turning every panel file into a 500. Rebuilding
+  // the response gives the middleware headers it may write to. The body stream
+  // is passed straight through, not buffered, so nothing is copied in memory.
+  return new Response(response.body, response);
 }
 
 app.notFound((c) => c.json({ error: { code: "not_found", message: "Not found" } }, 404));

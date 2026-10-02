@@ -47,7 +47,7 @@ database_id = "5435c3c1-2155-45fd-b70c-93d6e1657fcb"
 directory = "./admin"
 binding = "ASSETS"
 not_found_handling = "404-page"
-run_worker_first = ["/api/*"]
+run_worker_first = ["/api/*", "/admin", "/admin/*"]
 
 # ---------------------------------------------------------------------------
 # Vars
