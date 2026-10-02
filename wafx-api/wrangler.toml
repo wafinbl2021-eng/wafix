@@ -62,7 +62,7 @@ run_worker_first = ["/api/*", "/admin", "/admin/*"]
 # the second half of the CSRF defence (SameSite=Strict on the cookie is the
 # first). Change this with the domain.
 [vars]
-PUBLIC_ORIGIN = "https://wafx-api.YOUR-SUBSERNAME.workers.dev"
+PUBLIC_ORIGIN = "https://wafx-api.wafinbl2021.workers.dev"
 
 # How long an admin session cookie stays valid. Rotated on every request; the
 # stored expires_at is refreshed to now + this.
