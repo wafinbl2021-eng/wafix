@@ -30,7 +30,7 @@ known in advance and are deliberately left as placeholders:
 
 ```
 database_id = "REPLACE_WITH_THE_ID_WRANGLER_PRINTED"
-PUBLIC_ORIGIN = "https://wafx-api.YOUR-SUBSCRIPTION.workers.dev"
+PUBLIC_ORIGIN = "https://wafx-api.YOUR-SUBSERNAME.workers.dev"
 ```
 
 Create the database and fill both in:

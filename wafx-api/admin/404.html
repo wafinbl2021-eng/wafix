@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="referrer" content="no-referrer" />
+    <title>Wafi X &middot; Not found</title>
+    <!--
+      Referenced at the root, not under /admin: this file is served by the
+      assets router, which mounts the admin/ directory at /, so /404.css is the
+      path that actually resolves.
+    -->
+    <link rel="stylesheet" href="/404.css" />
+    <link rel="icon" href="data:," />
+  </head>
+  <body>
+    <!--
+      No inline script and no inline style, for the same reason as the panel:
+      the Content-Security-Policy allows 'self' only. There is nothing to
+      script here anyway - this is one static screen.
+    -->
+    <main>
+      <p class="code">404</p>
+      <h1>Not found</h1>
+      <p>That address does not match anything on this worker.</p>
+      <a href="/admin">Go to the catalog admin</a>
+    </main>
+  </body>
+</html>

@@ -156,7 +156,7 @@ function promptPassword(): Promise<string> {
       process.stdin.on("end", () => {
         resolvePromise(buffer.replace(/\r?\n$/, ""));
       });
-      process.stdin.on("error", (error) => {
+      process.stdin.on("error", (error: unknown) => {
         rejectPromise(error instanceof Error ? error : new Error(String(error)));
       });
       return;
@@ -190,7 +190,7 @@ function promptPassword(): Promise<string> {
     };
 
     process.stdin.on("data", onData);
-    process.stdin.on("error", (error) => {
+    process.stdin.on("error", (error: unknown) => {
       rejectPromise(error instanceof Error ? error : new Error(String(error)));
     });
   });

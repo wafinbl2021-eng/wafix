@@ -7,7 +7,18 @@
   // stripper resolves specifiers itself and does not add extensions.
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "types": ["@cloudflare/workers-types", "node"]
+    // The order of `types` here is load-bearing. @cloudflare/workers-types v5
+    // declares `declare const process: any` (and `Buffer: any`) as globals,
+    // because the Workers runtime now has them. Listed first, that `any` wins
+    // and every `process.env.X` in scripts/seed-admin.ts silently degrades to
+    // `any` - which `tsc` accepts and the `no-unsafe-*` lint rules then reject
+    // with 54 errors that say nothing about the real cause. Listing "node"
+    // first lets @types/node's precise declarations win.
+    //
+    // The duplicate global itself is a real conflict that only goes unreported
+    // because `skipLibCheck` is on in tsconfig.json. So: do not reorder these
+    // to tidy them up, and expect to re-check this when bumping either package.
+    "types": ["node", "@cloudflare/workers-types"]
   },
   "include": ["src/**/*.ts", "test/**/*.ts", "scripts/**/*.ts"]
 }

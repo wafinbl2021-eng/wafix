@@ -33,7 +33,7 @@ workers_dev = true
 # advance.
 binding = "DB"
 database_name = "wafx"
-database_id = "REPLACE_WITH_THE_ID_WRANGLER_PRINTED"
+database_id = "5435c3c1-2155-45fd-b70c-93d6e1657fcb"
 
 # ---------------------------------------------------------------------------
 # Static assets
@@ -46,7 +46,7 @@ database_id = "REPLACE_WITH_THE_ID_WRANGLER_PRINTED"
 [assets]
 directory = "./admin"
 binding = "ASSETS"
-not_found_handling = "404"
+not_found_handling = "404-page"
 run_worker_first = ["/api/*"]
 
 # ---------------------------------------------------------------------------
