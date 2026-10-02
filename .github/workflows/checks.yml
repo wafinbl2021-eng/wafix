@@ -75,6 +75,31 @@ jobs:
         working-directory: backend
         run: npm ci && npm test
 
+  # Wafi X catalog API. A separate package with its own toolchain and its own
+  # tests, so it gets its own job rather than sharing the desktop build's
+  # dependencies. Same least-privilege posture: checks only, nothing is written.
+  wafx-api:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: wafx-api
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: wafx-api/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript, lint, schema and Worker tests
+        run: npm run check
+
   installers:
     if: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag }}
     # GitHub exposes draft releases only to callers with repository write

@@ -141,3 +141,27 @@ manifests/
 
 scripts/.advisor-test-bundle.css
 scripts/.thermals-test-bundle.css
+
+# Updater signing keys (minisign).
+#
+# `bundle.createUpdaterArtifacts` is true, so a release build signs the updater
+# manifest with the key matching the committed `plugins.updater.pubkey`. The
+# public half is safe to commit - it has to be, the client verifies against it -
+# but the private half must never be in this repository, and the block above
+# does not catch it: minisign keys are named `*.key`, not `*.pem`/`*.p12`.
+#
+# The public half is ignored too. It is not secret, but nothing in the build
+# reads it from here, and keeping both halves out makes it obvious that the key
+# pair lives somewhere else entirely rather than half-committed.
+**/*.key
+**/*.key.pub
+tauri.key
+tauri.key.pub
+updater.key
+updater.key.pub
+signing.key
+signing.key.pub
+
+# The signing wrapper refuses a key stored inside the working tree, but keep the
+# encrypted-key form out of history too.
+*.minisig

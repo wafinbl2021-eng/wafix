@@ -1,0 +1,112 @@
+name: Deploy wafx-api
+
+# The Wafi X catalog API. Deployment is deliberately manual: the Worker is the
+# thing the desktop app trusts for its Applications section, so publishing a
+# change to it is a release decision, not a side effect of merging a pull
+# request. Same posture as stable-download-alias.yml.
+#
+# This workflow does NOT touch the desktop app's release pipeline. Installer
+# signing stays on the authorized release machine (see RELEASING.md and
+# scripts/build-signed.ps1); nothing here holds the updater private key.
+on:
+  workflow_dispatch:
+    inputs:
+      migrate:
+        description: "Apply pending D1 migrations before deploying"
+        required: false
+        default: false
+        type: boolean
+      dry_run:
+        description: "Run every check and wrangler dry-run, deploy nothing"
+        required: false
+        default: false
+        type: boolean
+
+# Least privilege, matching the 2026-08-08 audit: this publishes a Worker. It
+# never pushes to the repository and never creates a release, so it needs no
+# contents: write.
+permissions:
+  contents: read
+
+concurrency:
+  # Two deploys racing would leave the D1 schema and the Worker code disagreeing.
+  group: wafx-api-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: wafx-api
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: wafx-api/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      # A deployment must never ship something the Worker tests would have caught.
+      - name: Checks
+        run: npm run check
+
+      # wrangler.toml carries two values that cannot be known in advance, so they
+      # are placeholders in version control. Deploying with either left as a
+      # placeholder fails confusingly (a 404, or an origin check that rejects
+      # every request), so name them here instead.
+      - name: Refuse to deploy with placeholder config
+        run: |
+          set -euo pipefail
+          missing=0
+          if grep -q 'REPLACE_WITH_THE_ID_WRANGLER_PRINTED' wrangler.toml; then
+            echo "::error::wafx-api/wrangler.toml still has the placeholder database_id."
+            echo "::error::Run 'npx wrangler d1 create wafx' and paste the printed id in."
+            missing=1
+          fi
+          if grep -q 'YOUR-SUBSCRIPTION' wrangler.toml; then
+            echo "::error::wafx-api/wrangler.toml still has the placeholder PUBLIC_ORIGIN."
+            echo "::error::Set it to https://wafx-api.<your-subdomain>.workers.dev"
+            missing=1
+          fi
+          exit $missing
+
+      - name: Show what wrangler would publish
+        if: ${{ inputs.dry_run }}
+        run: npx wrangler deploy --dry-run --outdir dist-dry-run
+
+      - name: Apply D1 migrations
+        if: ${{ inputs.migrate && !inputs.dry_run }}
+        run: npx wrangler d1 migrations apply wafx --remote
+
+      - name: Deploy
+        if: ${{ !inputs.dry_run }}
+        run: npx wrangler deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Verify the public endpoints respond
+        if: ${{ !inputs.dry_run }}
+        run: |
+          set -euo pipefail
+          origin=$(sed -n 's/^PUBLIC_ORIGIN = "\(.*\)"/\1/p' wrangler.toml)
+          echo "origin: $origin"
+          for attempt in 1 2 3 4 5; do
+            code=$(curl -s -o /tmp/apps.json -w '%{http_code}' "$origin/api/apps" || true)
+            if [ "$code" = "200" ]; then
+              echo "GET /api/apps -> 200"
+              head -c 300 /tmp/apps.json; echo
+              exit 0
+            fi
+            echo "attempt $attempt: /api/apps -> $code, retrying"
+            sleep 6
+          done
+          echo "::error::the deployed Worker did not answer /api/apps after 5 attempts"
+          exit 1

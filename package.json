@@ -13,7 +13,7 @@
     "check:i18n-quality": "node scripts/audit-i18n.mjs",
     "check:rust": "cargo test --manifest-path src-tauri/Cargo.toml",
     "check:native-policy": "node scripts/check-native-policy.mjs",
-    "check": "tsc --noEmit && eslint src && prettier --check \"src/**/*.{ts,tsx,css}\" && npm run check:i18n && npm run check:i18n-quality && npm run check:rust && npm run test:advisor && npm run test:thermals && npm run test:repair-eta && npm run test:updater && npm run test:debloat && npm run test:download-limit-reconcile",
+    "check": "tsc --noEmit && eslint src && prettier --check \"src/**/*.{ts,tsx,css}\" && npm run check:i18n && npm run check:i18n-quality && npm run check:rust && npm run test:advisor && npm run test:thermals && npm run test:repair-eta && npm run test:updater && npm run test:release-identity && npm run test:debloat && npm run test:download-limit-reconcile",
     "lint": "eslint src",
     "format": "prettier --write \"src/**/*.{ts,tsx,css}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,css}\"",
@@ -23,6 +23,7 @@
     "test:lifetime-offer": "node scripts/test-lifetime-offer.mjs",
     "test:thermals": "node scripts/test-thermals.mjs",
     "test:updater": "node scripts/test-updater.mjs",
+    "test:release-identity": "node --test scripts/release-identity.test.mjs",
     "test:repair-eta": "node scripts/test-repair-eta.mjs"
   },
   "dependencies": {
