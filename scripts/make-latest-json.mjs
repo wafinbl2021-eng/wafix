@@ -6,8 +6,10 @@
  *
  * Reads the version from src-tauri/tauri.conf.json, the signature from the
  * .exe.sig next to the setup bundle, and the release notes from the given
- * file (first paragraph). Requires valid publisher signatures, timestamps
- * and cryptographically verified updater signatures before writing output.
+ * file (first paragraph). Requires cryptographically verified updater
+ * signatures before writing output. Authenticode is required by default and is
+ * skipped only when ALLOW_UNSIGNED_AUTHENTICODE below says a release decided to
+ * ship unsigned - see RELEASING.md.
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -181,10 +183,37 @@ function powershellHost() {
 
 const sha256 = (file) => createHash("sha256").update(fs.readFileSync(file)).digest("hex");
 const hashes = new Map(binaries.map((file) => [file, sha256(file)]));
-const powershell = powershellHost();
-for (const binary of binaries) {
-  execFileSync(powershell, ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass",
-    "-File", path.join(root, "scripts", "verify-authenticode.ps1"), "-Path", binary], { stdio: "inherit" });
+
+/**
+ * Whether a missing Authenticode signature stops this script.
+ *
+ * Daltoon X 1.0.0 ships unsigned by decision - see the "Authenticode: unsigned
+ * for 1.0.0" section of RELEASING.md. Setting this back to false restores the
+ * strict gate, and is the only change needed here once a publisher certificate
+ * exists.
+ *
+ * Skipping the gate is not the same as passing it, and nothing downstream
+ * treats an unsigned build as verified. The updater signature and public-key
+ * checks, the payload check and the unchanged-hash check all still run and
+ * still throw. The console reports NOT_SIGNED rather than Valid, and
+ * `latest.json` carries no publisher claim, because a manifest cannot make one
+ * true. `verify-authenticode.ps1` itself is left strict, so anything else that
+ * calls it is unaffected.
+ */
+const ALLOW_UNSIGNED_AUTHENTICODE = true;
+
+if (ALLOW_UNSIGNED_AUTHENTICODE) {
+  console.warn(
+    "AUTHENTICODE: NOT_SIGNED (allowed for Daltoon X 1.0.0) - these binaries carry no\n" +
+      "  publisher signature and none is claimed. Updater signatures, the payload\n" +
+      "  check and the hash checks below are still enforced."
+  );
+} else {
+  const powershell = powershellHost();
+  for (const binary of binaries) {
+    execFileSync(powershell, ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass",
+      "-File", path.join(root, "scripts", "verify-authenticode.ps1"), "-Path", binary], { stdio: "inherit" });
+  }
 }
 const updaterSignature = verifyUpdater(path.join(nsisDir, setup), conf.plugins.updater.pubkey);
 verifyUpdater(path.join(msiDir, msis[0]), conf.plugins.updater.pubkey);

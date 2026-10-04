@@ -34,8 +34,20 @@ test("missing and empty updater signatures fail closed", () => {
   }
 });
 
+// Daltoon X 1.0.0 is released without Authenticode, so a bundle with no
+// publisher signature is no longer a reason to refuse a manifest — see
+// ALLOW_UNSIGNED_AUTHENTICODE in make-latest-json.mjs and the "Authenticode:
+// unsigned for 1.0.0" section of RELEASING.md.
+//
+// What this test actually protects has not changed, and is not negotiable: a
+// bundle whose *updater* signature does not verify must never yield a manifest.
+// The fixture below ships a `.sig` that is present but invalid, so the run now
+// fails at the updater check instead of at the Authenticode check — the same
+// refusal, reached through the gate that still applies. The assertions that a
+// non-zero exit, no latest.json and no stable alias are written are the real
+// property; only the reason string changed.
 test(
-  "unsigned bundles do not produce a manifest or stable alias",
+  "a bundle with an invalid updater signature produces no manifest or stable alias",
   { skip: process.platform !== "win32" },
   () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "pctweaker-verify-"));
@@ -60,8 +72,15 @@ test(
         [path.join(dir, "scripts/make-latest-json.mjs"), path.join(dir, "notes.md")],
         { encoding: "utf8" },
       );
+      const output = result.stdout + result.stderr;
       assert.notEqual(result.status, 0);
-      assert.match(result.stdout + result.stderr, /Authenticode verification failed/);
+      // The updater signature is the gate that refuses this run, and naming it
+      // here means relaxing it breaks this test rather than passing silently.
+      assert.match(output, /Missing or malformed Tauri updater signature/);
+      // The run must also be explicit that Authenticode was skipped rather
+      // than satisfied, so a reader of the log is never told it was verified.
+      assert.match(output, /AUTHENTICODE: NOT_SIGNED/);
+      assert.doesNotMatch(output, /Authenticode verification (passed|ok)/i);
       assert.equal(fs.existsSync(path.join(nsis, "latest.json")), false);
       assert.equal(fs.existsSync(path.join(nsis, "WafiX-Setup.exe")), false);
     } finally {

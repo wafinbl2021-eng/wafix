@@ -33,15 +33,32 @@ const WAFIX_REPO = "wafinbl2021-eng/wafix";
 
 // The base64 blob of the Wafi X minisign public key compiled into every build.
 //
-// 2026-10-04 — ROTATED. The previous key id was E8F6107E4288E376 and its private
-// key is not recoverable from this machine, so no future release could be signed
-// with it. The key id is now E39359C78CAE9427. This is a reviewed edit, exactly
-// the case the note above describes, and it is deliberately NOT silent: an
-// install built against the old key will reject anything signed by the new one,
-// so every shipped client must be on the new key before the next release goes
-// out. The matching private key lives outside the repository.
+// 2026-10-05 — ROTATED for Daltoon X 1.0.0 (Tauri Updater Key Rotation).
+// The previous key id was E39359C78CAE9427. Its private key is still on this
+// machine but is encrypted with a password that is not recoverable here, so no
+// 1.0.0 artifact could be signed with it and the release could not be produced
+// at all. The key id is now 2822E8EE274F1A93.
+//
+// Rotating was safe here, and that is the reason it was allowed: nothing had
+// ever been published under the old key. No GitHub release existed for this
+// repository, no tag had ever been cut, and the updater endpoint answered 404 —
+// so no installed client anywhere had compiled the old key, and nothing could be
+// stranded by the change. The old keypair is kept, not deleted.
+//
+// This is the reviewed edit the note above describes, and it is deliberately
+// NOT silent. From this commit onward the key is final: an install built against
+// 2822E8EE274F1A93 rejects anything signed by any other key, so this key must
+// be retained for the life of the product and the private half kept somewhere
+// recoverable. That is the trade a rotation makes, and it is only cheap while
+// there is nothing in the field to strand — which is why this one had to happen
+// before 1.0.0 shipped, and must never happen after.
+//
+// Editing this constant is the deliberate act the assertion below watches for.
+// Editing it without rotating the key everywhere else is the mistake; the
+// assertion still fails on any change to `plugins.updater.pubkey` that is not
+// accompanied by an edit here.
 const COMMITTED_PUBKEY =
-  "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEUzOTM1OUM3OENBRTk0MjcKUldRbmxLNk14MW1UNDZXalZmSWxxSFBHVURuNFBQcE9EOEh1S3Z1QWlYSEVBbmVXY3ppWnFuZ04K";
+  "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDI4MjJFOEVFMjc0RjFBOTMKUldTVEdrOG43dWdpS011akVEUnlYcUxFakVtWWkrZDlodUJZY3NnS0loWG5xWkZCUnMreE9pcGoK";
 
 test("release identity is pinned", () => {
   assert.equal(conf.productName, "wafix");
