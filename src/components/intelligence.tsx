@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { format, Lang, Strings } from "../i18n";
+import { format, formatCount, Lang, Strings } from "../i18n";
 import { textFor } from "../lib";
 import { AuditEntry, CrashReport, DriftReport, Toast, TweakAdvice, TweakInfo } from "../types";
 import { ProBadge, ShieldBadge } from "./ui";
 import "./workspace-panels.css";
 
 /**
- * PC Tweaker Intelligence — vertical slice 1: Personal Advisor + Change
+ * Daltoon X Intelligence — vertical slice 1: Personal Advisor + Change
  * Ledger.
  *
  * Both are read-first surfaces over machinery that already exists and is
@@ -221,9 +221,7 @@ export function UpdateDriftCard({
       await onChanged();
       pushToast(
         "success",
-        one
-          ? s.drift.reappliedOne
-          : format(s.drift.reappliedMany, { count: report.reverted.length }),
+        one ? s.drift.reappliedOne : formatCount(s.drift.reappliedMany, report.reverted.length),
       );
       setReport({ ...report, reverted: [] });
     } catch (e) {
@@ -245,13 +243,12 @@ export function UpdateDriftCard({
         {report.windowsUpdated
           ? one
             ? format(s.drift.afterUpdateOne, { patch: report.currentPatch })
-            : format(s.drift.afterUpdateMany, {
-                count: report.reverted.length,
+            : formatCount(s.drift.afterUpdateMany, report.reverted.length, {
                 patch: report.currentPatch,
               })
           : one
             ? s.drift.noUpdateOne
-            : format(s.drift.noUpdateMany, { count: report.reverted.length })}
+            : formatCount(s.drift.noUpdateMany, report.reverted.length)}
       </p>
 
       <ul className="mt-3 flex flex-wrap gap-2">
@@ -274,7 +271,7 @@ export function UpdateDriftCard({
           ? s.drift.reapplying
           : one
             ? s.drift.reapplyOne
-            : format(s.drift.reapplyMany, { count: report.reverted.length })}
+            : formatCount(s.drift.reapplyMany, report.reverted.length)}
       </button>
     </div>
   );

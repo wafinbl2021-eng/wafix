@@ -2,7 +2,7 @@ import "./tool-surfaces.css";
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-import { format, Strings } from "../i18n";
+import { format, formatCount, Strings } from "../i18n";
 import { formatBytes } from "../lib";
 import {
   CacheCategory,
@@ -81,7 +81,7 @@ export function AppCacheCard({
         format(s.appCache.cleanedToast, { freed: formatBytes(result.freed_bytes) }),
       );
       if (result.skipped > 0) {
-        onToast("error", format(s.appCache.skippedNote, { count: result.skipped }));
+        onToast("error", formatCount(s.appCache.skippedNote, result.skipped));
       }
       await scan();
     } catch (e) {
@@ -265,7 +265,7 @@ export function CookieCleanerCard({
       });
       onToast(
         "success",
-        format(s.cookieCleaner.cleanedToast, { removed: result.removed, kept: result.kept }),
+        formatCount(s.cookieCleaner.cleanedToast, result.removed, { kept: result.kept }),
       );
       await scan();
     } catch (e) {

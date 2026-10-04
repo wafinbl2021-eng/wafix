@@ -1,7 +1,7 @@
 import "./tool-surfaces.css";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { format, Strings } from "../i18n";
+import { format, formatCount, Strings } from "../i18n";
 import { formatBytes } from "../lib";
 import { ProcessEntry, Toast, X3dReport } from "../types";
 import { ChipIcon } from "./icons";
@@ -52,9 +52,7 @@ function DieCard({
       <p className="type-data mt-1.5 text-[15px] font-semibold text-ink">
         {format(s.x3d.dieCache, { mb: String(Math.round(l3Bytes / (1024 * 1024))) })}
       </p>
-      <p className="type-data text-[11.5px] text-ink-3">
-        {format(s.x3d.dieThreads, { count: String(threads) })}
-      </p>
+      <p className="type-data text-[11.5px] text-ink-3">{formatCount(s.x3d.dieThreads, threads)}</p>
     </div>
   );
 }

@@ -2,7 +2,7 @@
  *  A "Stable download alias" GitHub Action re-uploads this fixed filename on
  *  every published release, so the URL never needs to change again. */
 export const DOWNLOAD_EXE =
-  "https://github.com/AurelioAvila/pc-tweaker-app/releases/latest/download/PCTweaker-Setup.exe";
+  "https://github.com/wafinbl2021-eng/wafix/releases/latest/download/WafiX-Setup.exe";
 
 /** The Uninstaller is a separate product with its own release stream and its
  *  own stable alias. The nav's Download button used to serve PC Tweaker's
@@ -22,7 +22,7 @@ export const UNINSTALLER_RELEASES =
 export const MICROSOFT_STORE = "https://apps.microsoft.com/detail/9nh3c6dt1g87?cid=pct-website";
 
 /** For people who want the .msi, release notes, checksums, or older versions. */
-export const RELEASES_PAGE = "https://github.com/AurelioAvila/pc-tweaker-app/releases/latest";
+export const RELEASES_PAGE = "https://github.com/wafinbl2021-eng/wafix/releases/latest";
 
 /** Backend that relays the support form and stores reviews. The support
  *  inbox address itself lives only on that server and is never shipped in

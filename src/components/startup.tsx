@@ -1,7 +1,7 @@
 import { ToolHeader, ToolSearch, ToolStatus, ToolDetails } from "./tool-section";
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { format, Strings } from "../i18n";
+import { format, formatCount, Strings } from "../i18n";
 import { ScheduledTaskEntry, StartupEntry, Toast } from "../types";
 import { HistoryIcon, RocketIcon } from "./icons";
 import { ShieldBadge, Toggle } from "./ui";
@@ -161,7 +161,7 @@ export function StartupManager({
         <p className="mt-2 text-xs text-ink-3">{s.startupManager.impactNote}</p>
         {hiddenCount > 0 && (
           <p className="mt-1.5 text-xs text-ink-3">
-            {format(s.startupManager.hiddenOrphans, { count: hiddenCount })}
+            {formatCount(s.startupManager.hiddenOrphans, hiddenCount)}
           </p>
         )}
       </div>

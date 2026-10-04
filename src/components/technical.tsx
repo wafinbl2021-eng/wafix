@@ -59,7 +59,7 @@ function Row({ change, s }: { change: TechnicalChange; s: Strings }) {
             <button
               type="button"
               onClick={() => copy(`${change.path}\\${change.valueName}`)}
-              className="ml-auto shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold text-ink-3 transition-colors hover:bg-white/5 hover:text-ink-2"
+              className="ms-auto shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold text-ink-3 transition-colors hover:bg-white/5 hover:text-ink-2"
             >
               {copied ? s.transparency.copied : s.transparency.copy}
             </button>

@@ -1,9 +1,12 @@
+mod account;
 mod appcache;
 mod update_identity;
 mod audit;
 mod avatar;
 pub mod baseline;
 mod browsercleanup;
+#[cfg(test)]
+mod brand_guard;
 mod cleanup;
 mod contextmenu;
 mod cookies;
@@ -49,6 +52,7 @@ mod ipc_commands;
 mod ipc_tests;
 mod license;
 mod lifetime_tools;
+mod luatools;
 mod netcheck;
 mod netlatency;
 mod netmaintenance;
@@ -455,7 +459,7 @@ fn list_tweaks(app: tauri::AppHandle) -> Result<Vec<TweakInfo>, String> {
         changes:vec![technical::TechnicalChange::Command{program:"SystemParametersInfoW",arguments:"Read FILTERKEYS; clear FKF_HOTKEYACTIVE only; preserve remaining flags and timings; restore the saved state.".into()}],
     });
     for (id,name,description,category,admin) in [
-        ("ecoqos_rules","Background app efficiency","Choose apps for EcoQoS while PC Tweaker is running. Foreground apps are restored; global power-throttling policy may block this feature.","performance",false),
+        ("ecoqos_rules","Background app efficiency","Choose apps for EcoQoS while Daltoon X is running. Foreground apps are restored; global power-throttling policy may block this feature.","performance",false),
         ("limit_do_background_download","Windows background download limit","Configure a Delivery Optimization limit in KB/s. Does not limit other applications or disable Windows Update.","performance",true),
         ("monitor_refresh_profile","Game display refresh profiles","Choose supported refresh rates per game. Preview and restore keep the original resolution and desktop layout.","gaming",false),
     ] {
@@ -1453,7 +1457,7 @@ pub(crate) fn dirs_app_data_dir() -> std::path::PathBuf {
     // Mirrors Tauri's own resolution (%APPDATA%/<identifier>) without needing
     // a running AppHandle, since the elevated helper process never builds a UI.
     let base = std::env::var("APPDATA").unwrap_or_else(|_| ".".to_string());
-    std::path::PathBuf::from(base).join("com.aurel.pc-tweaker-app")
+    std::path::PathBuf::from(base).join("app.wafix.desktop")
 }
 
 /// Last audit entries, newest first, for the dashboard's history card. The
@@ -1633,9 +1637,17 @@ pub fn run() {
             lifetime_tools::compare_lifetime_profiles,
             lifetime_tools::preview_lifetime_report,
             lifetime_tools::save_lifetime_report,
-            license::save_license,
+            luatools::luatools_status,
+            luatools::launch_luatools,
+            license::account_license,
             license::license_status,
             license::clear_license,
+            // Accounts. The session cookie is owned here in Rust; see
+            // src/account.rs for why the webview cannot hold it.
+            account::account_me,
+            account::account_login,
+            account::account_register,
+            account::account_logout,
             list_tweaks,
             apply_tweak,
             apply_tweaks,
@@ -2028,7 +2040,7 @@ pub(crate) fn require_pro(app_data_dir: &std::path::Path) -> Result<(), String> 
         return Ok(());
     }
     Err(format!(
-        "{}this feature requires an active PC Tweaker Pro license",
+        "{}this feature requires an active Daltoon X Pro license",
         PRO_REQUIRED_PREFIX
     ))
 }
@@ -2322,7 +2334,7 @@ fn open_hud_overlay(app: tauri::AppHandle) -> Result<(), String> {
     let placement = hud_window::read_placement(&dir);
 
     let window = WebviewWindowBuilder::new(&app, "hud", WebviewUrl::App("overlay.html".into()))
-        .title("PC Tweaker HUD")
+        .title("Daltoon X HUD")
         .inner_size(
             hud_window::size_for(placement.compact).0,
             hud_window::size_for(placement.compact).1,

@@ -1,24 +1,33 @@
-import { TweakyDriverPromoCard } from "./components/tweaky-driver-promo";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { openUrl } from "@tauri-apps/plugin-opener";
-import { STRINGS, Lang, detectInitialLang, format } from "./i18n";
-import { ThemeName, detectInitialTheme } from "./theme";
 import {
-  API_BASE_URL,
+  STRINGS,
+  Lang,
+  applyDocumentLanguage,
+  detectInitialLang,
+  format,
+  formatCount,
+  LANG_STORAGE_KEY,
+} from "./i18n";
+import { ThemeName, detectInitialTheme, THEME_STORAGE_KEY } from "./theme";
+import {
   FEATURE_INTELLIGENCE,
-  ProPlan,
   RAM_AUTO_STORAGE_KEY,
   adoptLegacyAvatar,
-  clearSession,
   discardLegacyAvatar,
   formatBytes,
-  readStoredEmail,
-  readToken,
-  storeSession,
+  purgeLegacySession,
   storedRamAutoMinutes,
   textFor,
 } from "./lib";
+import {
+  AccountView,
+  fetchLicense,
+  login as accountLogin,
+  logout as accountLogout,
+  register as accountRegister,
+  restoreSession,
+} from "./account-client";
 import { AuthState, CleanupInfo, CleanupResult, Section, Toast, TweakInfo } from "./types";
 import {
   AppsIcon,
@@ -43,8 +52,6 @@ import {
   IpMaskCard,
   LargeFileFinder,
   PasswordBreachCheck,
-  RedaxaPromoCard,
-  UninstallerPromoCard,
 } from "./components/maintenance";
 import { AccountMenu } from "./components/account";
 import { TweakIcon } from "./components/tweak-icon";
@@ -69,7 +76,6 @@ import { usePulseSamples } from "./components/command";
 import { ScheduledTaskManager, StartupManager } from "./components/startup";
 import { ProfilesPanel } from "./components/profiles";
 import { PricingPanel } from "./components/pricing";
-import { PRICING_COPY } from "./components/pricing-copy";
 import { GamingHudCard, ZeroTraceCard } from "./components/pro";
 import { TitleBar } from "./components/titlebar";
 import { CATEGORY_STYLE } from "./categories";
@@ -88,141 +94,149 @@ function App() {
 
   function setLang(l: Lang) {
     setLangState(l);
-    localStorage.setItem("pc-tweaker-lang", l);
+    localStorage.setItem(LANG_STORAGE_KEY, l);
   }
 
   const [theme, setThemeState] = useState<ThemeName>(() => detectInitialTheme());
 
   function setTheme(t: ThemeName) {
     setThemeState(t);
-    localStorage.setItem("pc-tweaker-theme", t);
+    localStorage.setItem(THEME_STORAGE_KEY, t);
   }
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
   }, [theme]);
 
-  const [auth, setAuth] = useState<AuthState>(() => {
-    const email = readStoredEmail();
-    const token = readToken();
-    // isPro/emailVerified start false and are corrected by refreshAccount()
-    // below as soon as it resolves — avoids briefly trusting a stale/forged
-    // local value.
-    return email && token
-      ? {
-          status: "authenticated",
-          email,
-          isPro: false,
-          emailVerified: false,
-          plan: null,
-          hasBilling: false,
-        }
-      : { status: "anonymous" };
-  });
+  // A layout effect, not an effect: `dir` decides which way the document mirrors,
+  // so it has to be set before the browser paints rather than after. The cost is
+  // a synchronous style recalculation on language change and nothing else.
+  useLayoutEffect(() => {
+    applyDocumentLanguage(lang);
+  }, [lang]);
+
+  // Starts as `loading`, never as `authenticated` on the strength of a stored
+  // value. There is no stored value any more — the session lives in a
+  // DPAPI-encrypted file only Rust can read — so this is genuinely unknown
+  // until restoreSession() answers.
+  const [auth, setAuth] = useState<AuthState>({ status: "loading" });
 
   const isProUnlocked = auth.status === "authenticated" && auth.isPro;
 
-  // Re-reads Pro status from the backend. Called on mount (if already logged
-  // in), right after login/register, and when the window regains focus —
-  // that last one is what picks up a Stripe payment completed in the system
-  // browser, since there's no deep link back into the app yet.
+  /**
+   * Turns an account view into app state.
+   *
+   * `isPro` starts false and is corrected by refreshLicense() as soon as it
+   * resolves. It is never taken from the server's `/me` reply: a client that can
+   * be told "you are Pro" by a plain HTTP boolean is a client whose Pro can be
+   * spoofed. The licence is signed, and it is the only thing that unlocks a
+   * Pro tweak.
+   */
+  function applyAccount(account: AccountView) {
+    setAuth({
+      status: "authenticated",
+      email: account.email,
+      isPro: false,
+      // 1.0.0 has no email verification: no verification request, no
+      // unverified state, nothing to wait for.
+      emailVerified: true,
+      plan: null,
+      // No Stripe in 1.0.0, so there is never a billing customer to show.
+      hasBilling: false,
+      lastLoginAt: account.last_login_at,
+    });
+    // Fire-and-forget: refreshLicense() handles its own errors and must never
+    // block the account screen on a signing hiccup.
+    void refreshLicense();
+  }
+
+  /**
+   * Asks the API who is signed in, once.
+   *
+   * Called on launch and after a sign-in. **Not** called on window focus and
+   * **not** polled: there is no deep link back from a payment page to notice, and
+   * a repeating request would be a heartbeat the user never agreed to.
+   *
+   * A network failure keeps whatever state we had. Recording "signed out" because
+   * a request timed out would discard a perfectly good session.
+   */
   async function refreshAccount() {
-    if (!API_BASE_URL) return;
-    const token = readToken();
-    if (!token) return;
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/account`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.status === 401) {
-        // Token expired or was invalidated server-side: reflect that in the
-        // UI instead of silently keeping a stale "logged in" state forever.
-        logout();
+    const state = await restoreSession();
+    switch (state.status) {
+      case "signed-in":
+        applyAccount(state.account);
         return;
-      }
-      if (!res.ok) {
-        pushToast("error", s.toasts.accountRefreshFailed);
+      case "signed-out":
+        setAuth({ status: "anonymous" });
         return;
-      }
-      const data = (await res.json()) as {
-        email: string;
-        isPro: boolean;
-        emailVerified: boolean;
-        plan?: string | null;
-        hasBilling?: boolean;
-      };
-      setAuth({
-        status: "authenticated",
-        email: data.email,
-        isPro: data.isPro,
-        emailVerified: data.emailVerified,
-        // Optional so a client that is newer than the deployed backend
-        // degrades to hiding the billing button rather than showing one
-        // that cannot work.
-        plan: data.plan ?? null,
-        hasBilling: data.hasBilling ?? false,
-      });
-      // Fire-and-forget: refreshLicense() has its own error handling and
-      // must never block the UI's account status on a signing hiccup.
-      void refreshLicense();
-    } catch {
-      // Network hiccup: keep whatever Pro status we already had rather than
-      // dropping the user back to Free on a transient failure — but say so,
-      // since a silent failure here is indistinguishable from actually
-      // having lost Pro access (see: the account that looked like it had
-      // reverted to Free while the server still reported it as Pro).
-      pushToast("error", s.toasts.accountRefreshFailed);
+      case "error":
+        pushToast("error", state.error.message);
+        // Only a genuine sign-out clears state. An unreachable or failing API
+        // leaves the previous state alone.
+        if (state.error.kind === "not_signed_in") setAuth({ status: "anonymous" });
+        return;
+      case "loading":
+        return;
     }
   }
 
   /**
-   * Fetches a freshly signed Pro entitlement and hands it to the Rust side,
-   * which is what `apply_tweak` actually checks before running a Pro tweak —
-   * this UI's `isPro` flag on its own was never enough, since nothing
-   * stopped a Pro-gated tweak from being invoked directly, bypassing this
-   * screen entirely. See `src-tauri/src/license.rs`.
+   * Fetches a freshly signed Pro entitlement and records what Rust concluded.
    *
-   * Called every time `refreshAccount` succeeds, which already covers
-   * mount, focus, and right after login — so this never needs its own
-   * separate trigger wiring.
+   * The fetch, the signature check, the product and account binding and the
+   * expiry all happen in `src-tauri/src/license.rs`; this receives two fields
+   * and nothing else. That split is the point: `isPro` here decides what the
+   * *badge* says, and `apply_tweak` independently re-verifies from the cache
+   * before any Pro tweak runs - so patching this flag changes a label, not an
+   * entitlement. See `src-tauri/src/license.rs`.
+   *
+   * A failure is silent on purpose and changes nothing. It runs in the
+   * background after a successful `/me`, on every launch and after every
+   * sign-in; a paying customer on a plane must not be shown an error because a
+   * refresh could not complete, and the cached licence keeps working until it
+   * ages out. The one thing that is never done is reporting a failed refresh as
+   * "not Pro".
    */
   async function refreshLicense() {
-    if (!API_BASE_URL) return;
-    const token = readToken();
-    if (!token) return;
     try {
-      const res = await fetch(`${API_BASE_URL}/api/license`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) return;
-      const response = (await res.json()) as { payloadJson: string; signature: string };
-      await invoke("save_license", { response });
+      const licence = await fetchLicense();
+      setAuth((current) =>
+        current.status === "authenticated"
+          ? { ...current, isPro: licence.is_pro, plan: licence.plan ?? null }
+          : current,
+      );
     } catch {
-      // Offline, or the backend's signer isn't configured: whatever was
-      // cached before keeps working until its grace period runs out. No
-      // toast — this runs silently in the background on every focus event
-      // and a real subscriber should never see noise from it.
+      // Offline, signed out, or the deployment cannot sign. Whatever was cached
+      // before keeps working until its grace period runs out.
     }
   }
 
   useEffect(() => {
-    refreshAccount();
-    // Before this version the profile photo belonged to the computer rather
-    // than to an account. Whoever is signed in as the app starts is the one
-    // who was using it when the update landed, so the old photo is theirs.
-    // Doing this at sign-in instead would hand it to the next account.
-    const signedInAs = readStoredEmail();
-    if (signedInAs) void adoptLegacyAvatar(signedInAs);
-    function onFocus() {
-      refreshAccount();
-    }
-    window.addEventListener("focus", onFocus);
-    return () => window.removeEventListener("focus", onFocus);
+    // Any session token an older version wrote to localStorage/sessionStorage is
+    // a live credential nobody is revoking. Delete it before anything else runs.
+    purgeLegacySession();
+
+    // Restore once, on launch. No focus listener and no polling — see
+    // refreshAccount.
+    void refreshAccount();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Before per-account photos the file belonged to the computer rather than to an
+  // account. Whoever is signed in as the app starts is the one who was using it
+  // when the update landed, so the old photo is theirs. Doing this at sign-in
+  // instead would hand it to the next account.
+  useEffect(() => {
+    if (auth.status === "authenticated" && auth.lastLoginAt === null) {
+      void adoptLegacyAvatar(auth.email);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [auth.status === "authenticated" ? auth.email : null]);
+
   function logout() {
-    clearSession();
+    // Rust drops the cookie it would have replayed, whether or not the server
+    // answered, so there is no local token left behind to clear.
+    void accountLogout();
     setAuth({ status: "anonymous" });
     // Without this, a still-fresh cached Pro license would keep unlocking
     // Pro tweaks for whoever uses the app next on this machine, for up to
@@ -234,135 +248,80 @@ function App() {
     void discardLegacyAvatar();
   }
 
-  async function authenticate(
-    mode: "login" | "register",
-    email: string,
-    password: string,
-    registerDetails?: { firstName: string; lastName: string; dateOfBirth: string },
-    remember = true,
-  ) {
-    if (!API_BASE_URL) {
-      throw new Error(s.auth.backendNotConfigured);
+  /**
+   * Signs in, or creates an account and then signs in.
+   *
+   * Registration is followed by an explicit sign-in rather than returning a
+   * session: the API issues no cookie on `/register` (it answers every outcome
+   * identically so it cannot be used to discover which addresses exist), so
+   * there is nothing to be signed in with until the login request is made.
+   *
+   * Takes no `remember` flag and no name or date of birth, because there is
+   * nothing for them to decide or fill: the session is Rust's to keep and the
+   * `accounts` table has no column for a name. Both were removed from the
+   * signature rather than accepted-and-ignored, so no caller can pass them.
+   */
+  async function authenticate(mode: "login" | "register", email: string, password: string) {
+    if (mode === "register") {
+      // Every outcome — created, or already existed — answers the same way, and
+      // the caller is told the same thing. Whether the address was taken is not
+      // something this app is allowed to reveal.
+      await accountRegister(email, password);
     }
-    const res = await fetch(`${API_BASE_URL}/api/auth/${mode}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password, ...registerDetails }),
-    });
-    if (!res.ok) {
-      const body = await res.json().catch(() => ({}) as { error?: string });
-      throw new Error(body.error || `HTTP ${res.status}`);
+
+    const state = await accountLogin(email, password);
+    if (state.status === "signed-in") {
+      applyAccount(state.account);
+      return;
     }
-    const data = (await res.json()) as { token: string };
-    // "Remember me" decides *where* the session lives, not just whether we
-    // prefill an address: sessionStorage is cleared when the app closes, so
-    // unticking it genuinely means "don't keep me signed in on this machine"
-    // rather than being a cosmetic checkbox.
-    storeSession(data.token, email, remember);
-    setAuth({
-      status: "authenticated",
-      email,
-      isPro: false,
-      emailVerified: false,
-      plan: null,
-      hasBilling: false,
-    });
-    await refreshAccount();
+    if (state.status === "error") {
+      if (state.error.kind === "not_signed_in") {
+        // The API's single answer for a wrong password, an unknown address and
+        // a disabled account. Passing it through unchanged is what stops this
+        // screen from becoming the enumeration channel the API works to remove.
+        throw new Error(state.error.message);
+      }
+      throw new Error(state.error.message);
+    }
+    // Signed out without an error. Treated as a failure rather than a success,
+    // because the user asked to be signed in and is not.
+    throw new Error(s.auth.backendNotConfigured);
   }
 
-  async function resendVerification() {
-    if (!API_BASE_URL) throw new Error(s.auth.backendNotConfigured);
-    const token = readToken();
-    if (!token) throw new Error(s.auth.loginRequiredForCheckout);
-    const res = await fetch(`${API_BASE_URL}/api/auth/resend-verification`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (!res.ok) {
-      const body = await res.json().catch(() => ({}) as { error?: string });
-      throw new Error(body.error || `HTTP ${res.status}`);
-    }
+  /**
+   * Upgrading to Pro.
+   *
+   * Phase 6 previously anticipated a checkout; in this release Pro is granted by
+   * an administrator. There is no payment provider, no price to take and no
+   * checkout to open. Throwing rather than returning quietly is deliberate — the
+   * button is reachable, and a click that does nothing is worse than one that
+   * says why.
+   */
+  async function startCheckout(): Promise<never> {
+    throw new Error(s.pricing.notAvailableYet);
   }
 
-  async function forgotPassword(email: string) {
-    if (!API_BASE_URL) throw new Error(s.auth.backendNotConfigured);
-    const res = await fetch(`${API_BASE_URL}/api/auth/forgot-password`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email }),
-    });
-    if (!res.ok) {
-      const body = await res.json().catch(() => ({}) as { error?: string });
-      throw new Error(body.error || `HTTP ${res.status}`);
-    }
+  /**
+   * A one-off tip.
+   *
+   * Same reason as `startCheckout`: no payment provider in 1.0.0. Nothing here
+   * depended on the session either way — a tip is not tied to an account and
+   * unlocks nothing — but there is nowhere to send one.
+   */
+  async function buyCoffee(): Promise<never> {
+    throw new Error(s.pricing.notAvailableYet);
   }
 
-  // Opens real Stripe Checkout in the system browser (Checkout can't run
-  // inside the app's webview). Throws with a clear reason when the backend
-  // isn't configured or the user isn't logged in yet, instead of pretending
-  // to charge anything.
-  async function startCheckout(plan: ProPlan = "annual") {
-    if (import.meta.env.DEV && import.meta.env.VITE_LIFETIME_PREVIEW_ENDS_AT) {
-      throw new Error(PRICING_COPY[lang].previewCheckout);
-    }
-    if (!API_BASE_URL) {
-      throw new Error(s.auth.backendNotConfigured);
-    }
-    const token = readToken();
-    if (!token) {
-      throw new Error(s.auth.loginRequiredForCheckout);
-    }
-    const res = await fetch(`${API_BASE_URL}/api/checkout`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ plan }),
-    });
-    if (!res.ok) {
-      const body = await res.json().catch(() => ({}) as { error?: string });
-      throw new Error(body.error || `HTTP ${res.status}`);
-    }
-    const data = (await res.json()) as { url: string };
-    await openUrl(data.url);
-  }
-
-  // A one-off tip. No login required — it isn't tied to an account and
-  // unlocks nothing, so there's nothing to gate behind sign-in. The count is
-  // sent, but the backend clamps it; this side is convenience, not the limit.
-  async function buyCoffee(quantity: number) {
-    if (!API_BASE_URL) {
-      throw new Error(s.auth.backendNotConfigured);
-    }
-    const res = await fetch(`${API_BASE_URL}/api/tip`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ quantity }),
-    });
-    if (!res.ok) {
-      const body = await res.json().catch(() => ({}) as { error?: string });
-      throw new Error(body.error || `HTTP ${res.status}`);
-    }
-    const data = (await res.json()) as { url: string };
-    await openUrl(data.url);
-  }
-
-  async function openBillingPortal() {
-    if (!API_BASE_URL) {
-      throw new Error(s.auth.backendNotConfigured);
-    }
-    const token = readToken();
-    if (!token) {
-      throw new Error(s.auth.loginRequiredForCheckout);
-    }
-    const res = await fetch(`${API_BASE_URL}/api/portal`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-    });
-    if (!res.ok) {
-      const body = await res.json().catch(() => ({}) as { error?: string });
-      throw new Error(body.error || `HTTP ${res.status}`);
-    }
-    const data = (await res.json()) as { url: string };
-    await openUrl(data.url);
+  /**
+   * The Stripe billing portal.
+   *
+   * Nothing to show: there is no Stripe customer for an account to have, which
+   * is why `AuthState.hasBilling` is hard-coded false in 1.0.0. The button is
+   * hidden rather than shown-and-broken, so this exists only to satisfy the
+   * signature the pricing panel expects.
+   */
+  async function openBillingPortal(): Promise<never> {
+    throw new Error(s.pricing.notAvailableYet);
   }
 
   const CATEGORIES: { key: Section; label: string; icon: React.ReactElement }[] = [
@@ -520,7 +479,7 @@ function App() {
       failures.forEach((f) => pushToast("error", f));
       await refresh();
       const restored = appliedIds.length - failures.length;
-      if (restored > 0) pushToast("success", format(s.restore.doneToast, { count: restored }));
+      if (restored > 0) pushToast("success", formatCount(s.restore.doneToast, restored));
     } catch (e) {
       pushToast("error", String(e));
     } finally {
@@ -533,13 +492,12 @@ function App() {
     setConfirmCleanup(null);
     try {
       const result = await invoke<CleanupResult>("run_cleanup", { id: info.id });
-      const base = format(s.cleanupResultToast, {
-        deleted: result.deleted_count,
+      const base = formatCount(s.cleanupResultToast, result.deleted_count, {
         freed: formatBytes(result.freed_bytes),
       });
       const suffix =
         result.skipped_count > 0
-          ? format(s.cleanupResultToastSkipped, { skipped: result.skipped_count })
+          ? formatCount(s.cleanupResultToastSkipped, result.skipped_count)
           : ".";
       pushToast("success", base + suffix);
     } catch (e) {
@@ -560,13 +518,12 @@ function App() {
         id: info.id,
         names,
       });
-      const base = format(s.cleanupResultToast, {
-        deleted: result.deleted_count,
+      const base = formatCount(s.cleanupResultToast, result.deleted_count, {
         freed: formatBytes(result.freed_bytes),
       });
       const suffix =
         result.skipped_count > 0
-          ? format(s.cleanupResultToastSkipped, { skipped: result.skipped_count })
+          ? formatCount(s.cleanupResultToastSkipped, result.skipped_count)
           : ".";
       pushToast("success", base + suffix);
     } catch (e) {
@@ -688,9 +645,9 @@ function App() {
           isPro={isProUnlocked}
           showHistory={FEATURE_INTELLIGENCE}
           onNavigate={setFilter}
-          onTip={async (quantity) => {
+          onTip={async () => {
             try {
-              await buyCoffee(quantity);
+              await buyCoffee();
             } catch (e) {
               pushToast("error", String(e instanceof Error ? e.message : e));
             }
@@ -729,10 +686,7 @@ function App() {
                   filter !== "debloat" && (
                     <div className="mt-1 flex items-center gap-3">
                       <p className="text-ink-3 type-data text-[12.5px]">
-                        {format(s.appliedCount, {
-                          applied: appliedCount,
-                          total: catalogTweaks.length,
-                        })}
+                        {formatCount(s.appliedCount, appliedCount, { total: catalogTweaks.length })}
                       </p>
                       {/* Restore supported settings from their saved values. */}
                       {restorableCount > 0 && (
@@ -749,7 +703,7 @@ function App() {
                   )}
               </div>
               {!showPricing && !showApplications && filter !== "debloat" && (
-                <div className="relative ml-auto w-56 shrink-0">
+                <div className="relative ms-auto w-56 shrink-0">
                   <MagnifierIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-3" />
                   <input
                     value={query}
@@ -782,8 +736,6 @@ function App() {
                 onOpenChange={setAccountMenuOpen}
                 onAuthenticate={authenticate}
                 onLogout={logout}
-                onResendVerification={resendVerification}
-                onForgotPassword={forgotPassword}
                 onUpgrade={() => setPaywallFeature(s.menu.planPro)}
                 onViewPlan={() => setFilter("pricing")}
                 pushToast={pushToast}
@@ -957,20 +909,18 @@ function App() {
                 hasBilling={auth.status === "authenticated" && auth.hasBilling}
                 freeTweakCount={freeTweakCount}
                 onOpenLifetimeTools={() => setFilter("profiles")}
-                onChoosePro={async (plan) => {
-                  // A visitor without an account is exactly who this button is
-                  // for, and it used to answer them with a red toast and
-                  // nowhere to go: startCheckout throws without a token and
-                  // the catch below only reported it. ProfilesPanel already
-                  // had the right shape — say what is missing and open the
-                  // place where it is fixed.
+                onChoosePro={async () => {
+                  // A signed-out visitor is exactly who this button is for, so
+                  // send them to the account menu rather than to a pricing
+                  // error. For a signed-in account the answer is that there is
+                  // nothing to buy: Pro is granted by hand in 1.0.0.
                   if (auth.status !== "authenticated") {
                     pushToast("error", s.auth.loginRequiredForCheckout);
                     setAccountMenuOpen(true);
                     return;
                   }
                   try {
-                    await startCheckout(plan);
+                    await startCheckout();
                   } catch (e) {
                     pushToast("error", String(e instanceof Error ? e.message : e));
                   }
@@ -996,7 +946,6 @@ function App() {
                   onFixed={refresh}
                   pushToast={pushToast}
                 />
-                <TweakyDriverPromoCard s={s} />
               </div>
             )}
 
@@ -1009,7 +958,6 @@ function App() {
                   pushToast={pushToast}
                 />
                 <PasswordBreachCheck s={s} />
-                <RedaxaPromoCard s={s} />
               </>
             )}
 
@@ -1212,8 +1160,6 @@ function App() {
                 />
               )}
 
-              {showCleanup && <UninstallerPromoCard s={s} />}
-
               {/* "No tweaks in this category" only makes sense on a screen that
                 IS a tweak category. It was an opt-out list of every other
                 section, which meant each new screen had to remember to add
@@ -1261,7 +1207,7 @@ function App() {
           <div className="animate-card w-full max-w-sm rounded-2xl border border-line bg-slate-900 p-6 shadow-2xl">
             <h3 className="text-lg font-bold text-ink">{s.restore.title}</h3>
             <p className="mt-2 text-sm leading-relaxed text-ink-3">
-              {format(s.restore.body, { count: restorableCount })}
+              {formatCount(s.restore.body, restorableCount)}
             </p>
             <button
               onClick={restoreAll}

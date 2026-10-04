@@ -21,12 +21,13 @@
  *
  * See src-tauri/src/fps.rs.
  */
-import { StrictMode, useCallback, useEffect, useRef, useState } from "react";
+import { StrictMode, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { LogicalSize } from "@tauri-apps/api/dpi";
 import { listen } from "@tauri-apps/api/event";
+import { LANG_STORAGE_KEY, Lang, STRINGS, applyDocumentLanguage, detectInitialLang } from "./i18n";
 import { Bottleneck, HudSnapshot } from "./types";
 // Deliberately NOT App.css. That stylesheet ends with
 // `html, body, #root { background-color: var(--bg-app) }`, which loads after
@@ -211,6 +212,7 @@ function BottleneckChip({ value }: { value: Bottleneck }) {
 function Hud() {
   const [snap, setSnap] = useState<HudSnapshot | null>(null);
   const [compact, setCompact] = useState(false);
+  const [lang, setLang] = useState<Lang>(() => detectInitialLang());
   const observer = useRef<ResizeObserver | null>(null);
   // The window follows the panel, not the other way round.
   //
@@ -298,8 +300,37 @@ function Hud() {
     };
   }, []);
 
-  if (!snap) return null;
+  // This window is a second document with its own `<html>`, so the language the
+  // user picked in the main window has to be picked up here separately.
+  //
+  // `storage` events are the only channel between the two windows: there is no
+  // shared React state, and the main window writes the choice to localStorage
+  // before React re-renders, so a language switch reaches an overlay that is
+  // already open instead of waiting for it to be reopened.
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key !== null && e.key !== LANG_STORAGE_KEY) return;
+      const next = detectInitialLang();
+      setLang((current) => (current === next ? current : next));
+    };
+    window.addEventListener("storage", onStorage);
+    // Also read once on mount: the overlay may have been created before the
+    // choice was written, and a window opened later must not wait for an event
+    // that has already happened.
+    const next = detectInitialLang();
+    setLang((current) => (current === next ? current : next));
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
 
+  // Layout, not effect: the panel is drawn inside the overlay window, and `dir`
+  // has to be set on this document's root before the browser paints it.
+  useLayoutEffect(() => {
+    applyDocumentLanguage(lang);
+  }, [lang]);
+
+  const labels = STRINGS[lang].hudLabels;
+
+  if (!snap) return null;
   const ramPct = snap.ram_total_mb > 0 ? (snap.ram_used_mb / snap.ram_total_mb) * 100 : null;
   const vramPct =
     snap.vram_total_mb && snap.vram_used_mb !== null && snap.vram_total_mb > 0
@@ -315,7 +346,7 @@ function Hud() {
     snap.fps && (
       <Metric
         key="fps"
-        label="FPS"
+        label={labels.fps}
         value={String(Math.round(snap.fps.fps))}
         pct={null}
         bar={false}
@@ -334,7 +365,10 @@ function Hud() {
         // number is for: this is where the frame rate goes when it goes. The
         // technical name is given in the card, so it stays possible to look
         // up. It is also two characters shorter, which the panel can use.
-        label="DROP"
+        //
+        // Translated rather than kept as the acronym, because unlike CPU or FPS
+        // it is an English word — see `hudLabels` in src/i18n.ts.
+        label={labels.drop}
         value={String(Math.round(snap.fps.low1_fps))}
         pct={null}
         bar={false}
@@ -344,21 +378,21 @@ function Hud() {
     ),
     <Metric
       key="cpu"
-      label="CPU"
+      label={labels.cpu}
       value={`${String(Math.round(snap.cpu_pct))}%`}
       pct={snap.cpu_pct}
       compact={compact}
     />,
     <Metric
       key="gpu"
-      label="GPU"
+      label={labels.gpu}
       value={snap.gpu_pct === null ? "—" : `${String(Math.round(snap.gpu_pct))}%`}
       pct={snap.gpu_pct}
       compact={compact}
     />,
     <Metric
       key="temp"
-      label="TEMP"
+      label={labels.temp}
       value={snap.gpu_temp_c === null ? "—" : `${String(Math.round(snap.gpu_temp_c))}°`}
       pct={snap.gpu_temp_c}
       compact={compact}
@@ -370,7 +404,7 @@ function Hud() {
     // already carries its own denominator.
     <Metric
       key="ram"
-      label="RAM"
+      label={labels.ram}
       value={memory(snap.ram_used_mb, snap.ram_total_mb)}
       pct={ramPct}
       compact={compact}
@@ -378,7 +412,7 @@ function Hud() {
     />,
     <Metric
       key="vram"
-      label="VRAM"
+      label={labels.vram}
       value={memory(snap.vram_used_mb, snap.vram_total_mb)}
       pct={vramPct}
       compact={compact}

@@ -28,7 +28,11 @@ export async function collectScan(call: Call, progress: (percent: number) => voi
   };
 }
 
-export const LAST_SCAN_KEY = "pc-tweaker-last-scan-v1";
+// The `-v1` suffix marks the persisted shape, not the product: if the stored
+// value ever changes incompatibly this becomes `-v2` and the old key is ignored.
+// Renamed from `pc-tweaker-last-scan-v1` with the rest of the live keys; there is
+// nothing to migrate because Daltoon X has never shipped.
+export const LAST_SCAN_KEY = "wafix-last-scan-v1";
 export type LastScan = { at: number; partial: boolean };
 export function readLastScan(raw: string | null): LastScan | null {
   try {

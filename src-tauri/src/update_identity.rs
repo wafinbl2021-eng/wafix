@@ -15,12 +15,12 @@ fn matches(platform: &ReleaseManifestPlatform, version: &str) -> bool {
         return false;
     }
     let expected = [
-        format!("pc-tweaker-app_{version}_x64-setup.exe"),
-        format!("pc-tweaker-app_{version}_x64_en-US.msi"),
+        format!("wafix_{version}_x64-setup.exe"),
+        format!("wafix_{version}_x64_en-US.msi"),
     ];
     expected.contains(&filename.to_string())
         && platform.url.as_str()
-            == format!("https://github.com/AurelioAvila/pc-tweaker-app/releases/download/v{version}/{filename}")
+            == format!("https://github.com/wafinbl2021-eng/wafix/releases/download/v{version}/{filename}")
 }
 
 pub fn release_matches(version: &str, data: &RemoteReleaseInner) -> bool {
@@ -37,9 +37,9 @@ mod tests {
     use super::*;
 
     fn platform(signed_version: &str, offered_version: &str) -> ReleaseManifestPlatform {
-        let name = format!("pc-tweaker-app_{signed_version}_x64-setup.exe");
+        let name = format!("wafix_{signed_version}_x64-setup.exe");
         ReleaseManifestPlatform {
-            url: format!("https://github.com/AurelioAvila/pc-tweaker-app/releases/download/v{offered_version}/pc-tweaker-app_{offered_version}_x64-setup.exe").parse().unwrap(),
+            url: format!("https://github.com/wafinbl2021-eng/wafix/releases/download/v{offered_version}/wafix_{offered_version}_x64-setup.exe").parse().unwrap(),
             // Identity-gate fixture only; the updater must independently reject
             // this non-cryptographic signature before installing any artifact.
             signature: STANDARD.encode(format!("untrusted comment: fixture\nfixture\ntrusted comment: timestamp:123\tfile:{name}\nfixture\n")),

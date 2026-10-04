@@ -193,10 +193,10 @@ pub fn export_profile(profile: TweakProfile) -> Result<String, String> {
 #[tauri::command(async)]
 pub fn import_profile(contents: String) -> Result<LoadedProfile, String> {
     let parsed: TweakProfile = serde_json::from_str(&contents)
-        .map_err(|_| "this file isn't a PC Tweaker profile".to_string())?;
+        .map_err(|_| "this file isn't a Daltoon X profile".to_string())?;
 
     if parsed.format > PROFILE_FORMAT {
-        return Err("this profile was made by a newer version of PC Tweaker".to_string());
+        return Err("this profile was made by a newer version of Daltoon X".to_string());
     }
 
     let (tweaks, unknown) = partition_known(parsed.tweaks);
@@ -316,7 +316,7 @@ pub fn read_profile_file(path: String) -> Result<LoadedProfile, String> {
 
     let meta = fs::metadata(&path).map_err(|e| format!("could not open the file: {}", e))?;
     if meta.len() > MAX_BYTES {
-        return Err("that file is too large to be a PC Tweaker profile".to_string());
+        return Err("that file is too large to be a Daltoon X profile".to_string());
     }
 
     let contents =

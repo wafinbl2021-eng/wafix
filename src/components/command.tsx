@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { format, Strings } from "../i18n";
+import { format, formatCount, Strings } from "../i18n";
 import { formatBytes, RAM_AUTO_INTERVALS, ramIntervalLabel } from "../lib";
 import { RamCleanResult, SystemStats, Toast, TweakInfo } from "../types";
 
@@ -105,7 +105,7 @@ export function SystemPulse({
   const status = scanning
     ? s.command.statusScanning
     : hasFindings
-      ? format(s.command.statusFindings, { count: findings })
+      ? formatCount(s.command.statusFindings, findings)
       : s.command.statusQuiet;
 
   return (
@@ -166,7 +166,7 @@ export function SystemPulse({
             onClick={onReview}
             className="bg-accent text-on-accent rounded-[8px] px-4 py-2 text-[13px] font-semibold transition-opacity duration-150 hover:opacity-90"
           >
-            {format(s.command.reviewFindings, { count: findings })}
+            {formatCount(s.command.reviewFindings, findings)}
           </button>
         ) : (
           <button

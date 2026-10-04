@@ -126,7 +126,7 @@ fn conflict(
     }
     if applied {
         if configured != written {
-            return Some("The Delivery Optimization policy changed outside PC Tweaker; the saved original is retained".into());
+            return Some("The Delivery Optimization policy changed outside Daltoon X; the saved original is retained".into());
         }
         if !["DefaultProvider", "GroupPolicyProvider", "MdmProvider"]
             .contains(&config.down_back_limit_bps_provider.as_str())
@@ -233,7 +233,7 @@ pub fn rollback(store: &RollbackStore) -> Result<DownloadLimitState, String> {
             return Ok(());
         }
         if current != Some(written_kbps) {
-            return Err("Delivery Optimization policy changed outside PC Tweaker; original snapshot retained".into());
+            return Err("Delivery Optimization policy changed outside Daltoon X; original snapshot retained".into());
         }
         let live = config()?;
         if conflict(&live, true, current, Some(written_kbps), managed_background_policy()?).is_some() {

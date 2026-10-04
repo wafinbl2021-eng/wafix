@@ -390,7 +390,7 @@ const PROTECTED_DIR_NAMES: &[&str] = &[
     // their settings with the cleaner they were using to tidy up. Nothing in
     // here is ever junk worth reclaiming.
     "ebwebview",
-    "com.aurel.pc-tweaker-app",
+    "app.wafix.desktop",
 ];
 
 pub(crate) fn touches_protected_dir(path: &Path) -> bool {

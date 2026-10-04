@@ -14,17 +14,58 @@ import type {
 import { AppsIcon } from "./icons";
 
 /**
- * The Wafi X catalog screen.
+ * The Daltoon X catalog screen.
  *
  * Everything here is a read of what Rust fetched. The panel sends two
  * identifiers when the user presses Install — an app id and a version id — and
  * Rust resolves the download URL, the checksum and the installer mode itself.
  * Nothing the webview holds can change what gets launched, which is the same
  * reason the download never happens in here either.
+ *
+ * The checksum is optional in the catalog, so `install_wafx_app` may come back
+ * `verified: false`. That is reported rather than smoothed over: Rust omits the
+ * `verify` phase when there was no digest to check, so this side never labels an
+ * install as verified on the strength of a phase it did not receive.
  */
 type Phase = "download" | "verify" | "install" | "done" | "failed";
 
 type Catalog = { apps: WafxApp[]; categories: WafxCategory[] };
+
+/**
+ * The card's name, verbatim in every language.
+ *
+ * This is a product label, not a sentence: `Steam` names the store and
+ * `LuaTools` is the program's own name, so neither is translated and no locale
+ * entry carries it. Putting it here rather than in the locale table is what
+ * keeps it identical across all seven.
+ */
+const LUA_TOOLS_LABEL = "Steam LuaTools";
+
+/**
+ * What Rust found on the machine, or what happened when the user asked.
+ *
+ * `status` is a discriminant Rust chooses, never a message this side has to
+ * read: the wording lives in the locale table and the reasons live in `detail`,
+ * which is shown to nobody. Reading `detail` would be reading an English
+ * sentence out of Rust, which is exactly the coupling the catalog above avoids.
+ */
+type LuaToolsReport = {
+  status: "installed" | "launched" | "not_installed" | "runtime_missing" | "error";
+  official_page: string | null;
+  detail: string | null;
+};
+
+/**
+ * Whether the card's primary action should start LuaTools.
+ *
+ * `runtime_missing` is excluded on purpose: the program is there and the button
+ * would work on a machine that has the runtime, but this one does not, and
+ * telling the user to install a framework is the honest instruction rather than
+ * a launch that dies on a dialog they did not ask for.
+ */
+function luaToolsCanLaunch(status: LuaToolsReport["status"]): boolean {
+  return status === "installed" || status === "launched";
+}
 
 /**
  * One catalog read.
@@ -56,6 +97,51 @@ export function ApplicationsPanel({
   const [phase, setPhase] = useState<Record<string, Phase>>({});
   const [progress, setProgress] = useState<Record<string, WafxDownloadProgress>>({});
   const [failure, setFailure] = useState<Record<string, string>>({});
+  const [luaTools, setLuaTools] = useState<LuaToolsReport | null>(null);
+  const [luaToolsBusy, setLuaToolsBusy] = useState(false);
+
+  /**
+   * Asks Rust what is on the machine.
+   *
+   * The command takes no arguments and returns a report; nothing here names a
+   * path, because nothing here can. A failure leaves the report null and the
+   * card draws its own unavailable state rather than pretending LuaTools is
+   * installed.
+   */
+  const readLuaTools = useCallback(async () => {
+    try {
+      setLuaTools(await invoke<LuaToolsReport>("luatools_status"));
+    } catch {
+      setLuaTools(null);
+    }
+  }, []);
+
+  /**
+   * Starts LuaTools and reports what Rust decided.
+   *
+   * Rust has already finished by the time this resolves: it spawns and returns,
+   * never waits, so the panel is not blocked while LuaTools is open.
+   */
+  const launchLuaTools = useCallback(async () => {
+    setLuaToolsBusy(true);
+    try {
+      const report = await invoke<LuaToolsReport>("launch_luatools");
+      setLuaTools(report);
+      if (report.status === "launched") {
+        pushToast("success", `${s.applications.luaToolsStarting}`);
+      } else if (report.status === "runtime_missing") {
+        pushToast("error", s.applications.luaToolsRuntimeMissing);
+      } else if (report.status === "not_installed") {
+        pushToast("error", s.applications.luaToolsNotInstalled);
+      } else {
+        pushToast("error", s.applications.luaToolsFailed);
+      }
+    } catch {
+      pushToast("error", s.applications.luaToolsFailed);
+    } finally {
+      setLuaToolsBusy(false);
+    }
+  }, [pushToast, s.applications]);
 
   const applyCatalog = useCallback((catalog: Catalog) => {
     setApps(catalog.apps);
@@ -86,7 +172,10 @@ export function ApplicationsPanel({
     readCatalog()
       .then(applyCatalog, (error: unknown) => setLoadError(errorMessage(error)))
       .finally(() => setLoading(false));
-  }, [applyCatalog]);
+    // Independent of the catalog: a machine can have no catalog reachable and
+    // still have LuaTools, and a catalog failure must not blank this card.
+    void readLuaTools();
+  }, [applyCatalog, readLuaTools]);
 
   useEffect(() => {
     let cancelled = false;
@@ -164,6 +253,16 @@ export function ApplicationsPanel({
     [apps, activeCategory],
   );
 
+  /**
+   * Whether the LuaTools card belongs in the grid right now.
+   *
+   * LuaTools is not a catalog entry: it has no category, and Daltoon X neither
+   * publishes nor installs it. Showing it under a category chip would put a
+   * launcher inside a filter about apps the catalog knows about, so it appears
+   * only in the unfiltered view.
+   */
+  const showLuaTools = activeCategory === null;
+
   if (loading) {
     return <p className="type-note">{s.applications.loading}</p>;
   }
@@ -208,10 +307,19 @@ export function ApplicationsPanel({
         </div>
       )}
 
-      {visible.length === 0 ? (
+      {visible.length === 0 && !showLuaTools ? (
         <p className="type-note">{s.applications.empty}</p>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
+          {showLuaTools && (
+            <LuaToolsCard
+              s={s}
+              report={luaTools}
+              busy={luaToolsBusy}
+              onLaunch={() => void launchLuaTools()}
+              onRefresh={() => void readLuaTools()}
+            />
+          )}
           {visible.map((app) => (
             <AppCard
               key={app.id}
@@ -380,4 +488,113 @@ function AppCard({
 /** Rust returns a plain string for every command failure. */
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
+}
+
+/**
+ * The LuaTools launcher.
+ *
+ * Shaped like {@link AppCard} so it sits in the same grid without a second
+ * card style, and deliberately unlike it in one respect: there is no version
+ * chip and no progress bar, because Daltoon X does not distribute LuaTools and
+ * has no download or install phase to report. The only thing this card can do
+ * is start a program the user already has.
+ *
+ * The three states it draws come straight from Rust's discriminant. The card
+ * never inspects `detail`, so the reasons Rust records for its own audit trail
+ * stay invisible here and can be reworded without touching this component.
+ */
+function LuaToolsCard({
+  s,
+  report,
+  busy,
+  onLaunch,
+  onRefresh,
+}: {
+  s: Strings;
+  report: LuaToolsReport | null;
+  busy: boolean;
+  onLaunch: () => void;
+  onRefresh: () => void;
+}) {
+  const app = s.applications;
+  // Null means the status read failed, which is not the same as "not
+  // installed" -- so the card says it could not tell, and offers a retry,
+  // rather than telling the user to install something that may be there.
+  const status = report?.status ?? null;
+  const canLaunch = status !== null && luaToolsCanLaunch(status);
+
+  // Only shown when Rust supplied it, so this side never invents an address.
+  const officialPage = report?.official_page ?? null;
+
+  const officialLink = officialPage ? (
+    <a
+      href={officialPage}
+      target="_blank"
+      rel="noreferrer noopener"
+      className="type-note mt-2 inline-block underline"
+    >
+      {app.luaToolsOfficialPage}
+    </a>
+  ) : null;
+
+  return (
+    <section className="flex flex-col rounded-2xl border border-line bg-surface-1 p-4">
+      <div className="flex items-start gap-3">
+        <span
+          aria-hidden="true"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-surface-2 text-ink-3"
+        >
+          <AppsIcon className="h-5 w-5" />
+        </span>
+
+        <div className="min-w-0 flex-1">
+          <h3 className="truncate font-semibold text-ink">{LUA_TOOLS_LABEL}</h3>
+        </div>
+      </div>
+
+      <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-ink-3">
+        {app.luaToolsDescription}
+      </p>
+
+      <div className="mt-auto pt-3">
+        {status === null ? (
+          // Could not read the machine. Not the same as absent, so no install
+          // advice and no launch button -- just a way to ask again.
+          <button
+            type="button"
+            onClick={onRefresh}
+            className="w-full rounded-xl border border-line px-4 py-2 text-sm font-semibold text-ink-3 transition hover:brightness-110"
+          >
+            {app.retry}
+          </button>
+        ) : canLaunch ? (
+          <button
+            type="button"
+            onClick={onLaunch}
+            disabled={busy}
+            className="w-full rounded-xl border border-line bg-accent-soft px-4 py-2 text-sm font-semibold text-accent transition hover:brightness-110 disabled:opacity-60"
+          >
+            {app.luaToolsOpen}
+          </button>
+        ) : status === "runtime_missing" ? (
+          // LuaTools *is* installed here, so this must not claim otherwise. The
+          // instruction is the message, and Daltoon X offers no install button:
+          // putting a runtime in place is a deliberate act, not a launcher job.
+          <div>
+            <p role="status" className="text-sm text-danger">
+              {app.luaToolsRuntimeMissing}
+            </p>
+            {officialLink}
+          </div>
+        ) : (
+          <div>
+            <p role="status" className="type-note">
+              {app.luaToolsNotInstalled}
+            </p>
+            {officialLink}
+          </div>
+        )}
+      </div>
+    </section>
+  );
 }

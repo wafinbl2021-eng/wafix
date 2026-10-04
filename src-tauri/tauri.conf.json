@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "pc-tweaker-app",
-  "version": "1.14.10",
-  "identifier": "com.aurel.pc-tweaker-app",
+  "productName": "wafix",
+  "version": "1.0.0",
+  "identifier": "app.wafix.desktop",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1420",
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "PC Tweaker",
+        "title": "Daltoon X",
         "width": 1000,
         "height": 700,
         "minWidth": 820,
@@ -21,24 +21,27 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src ipc: http://ipc.localhost https://api.pctweaker.app https://api.pwnedpasswords.com; object-src 'none'; base-uri 'self'; form-action 'self'"
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src ipc: http://ipc.localhost https://api.pwnedpasswords.com https://wafx-api.wafinbl2021.workers.dev; object-src 'none'; base-uri 'self'; form-action 'self'"
     }
   },
   "plugins": {
     "updater": {
       "endpoints": [
-        "https://github.com/AurelioAvila/pc-tweaker-app/releases/latest/download/latest.json"
+        "https://github.com/wafinbl2021-eng/wafix/releases/latest/download/latest.json"
       ],
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDFBNDA3NzYyMzQ4NjMyRDIKUldUU01vWTBZbmRBR3Z1bEN3N2xYK0VIeUwzaEo4UU1lS2ZMR25xMlFHZ2FuUEZvZENzcXdldDYK"
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEUzOTM1OUM3OENBRTk0MjcKUldRbmxLNk14MW1UNDZXalZmSWxxSFBHVURuNFBQcE9EOEh1S3Z1QWlYSEVBbmVXY3ppWnFuZ04K"
     }
   },
   "bundle": {
     "active": true,
-    "targets": "all",
+    "targets": [
+      "msi",
+      "nsis"
+    ],
     "createUpdaterArtifacts": true,
-    "shortDescription": "Windows tuning with clear changes and restore tools for supported settings",
-    "publisher": "Aurelio Avila",
-    "copyright": "Copyright © 2026 Aurelio Avila. All rights reserved.",
+    "shortDescription": "Tune Windows with the changes in plain sight",
+    "publisher": "Wafi",
+    "copyright": "Copyright © 2026 Wafi. All rights reserved.",
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -48,7 +51,8 @@
     ],
     "windows": {
       "nsis": {
-        "installerIcon": "icons/icon.ico"
+        "installerIcon": "icons/icon.ico",
+        "installMode": "perMachine"
       }
     }
   }

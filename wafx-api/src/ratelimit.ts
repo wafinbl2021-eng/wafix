@@ -62,6 +62,48 @@ export async function loginBucket(username: string): Promise<string> {
 /** Per-IP only, applied before any account lookup so it costs nothing extra. */
 export const loginIpBucket = (ip: string): string => `login-ip:${ip}`;
 
+/**
+ * Account buckets.
+ *
+ * Two buckets per login, and two more for registration, so the cost of guessing
+ * is bounded whether the attacker spreads requests across addresses or across
+ * accounts.
+ *
+ * Why the IP is hashed here and stored plainly in `loginIpBucket` above: this is a
+ * deliberate divergence, not an inconsistency. Admin login is one operator, and
+ * the plaintext IP is useful in an audit trail. Account login is the public
+ * internet, and `rate_limits` is not a table anyone should be able to read a
+ * visitor's address out of. The bucket key does not need to be readable for the
+ * limit to work - it only needs to be the same string for the same input.
+ *
+ * Addresses are normalised the same way `loginBucket` normalises a username, so
+ * `A@x.com` and `a@x.com` cannot each spend their own budget.
+ *
+ * Why registration has its own address bucket rather than reusing the login one:
+ * the two are judged against different limits - five logins per fifteen minutes is
+ * a brute-force ceiling, five registrations per day is a spam ceiling - and one
+ * shared counter would be measured against whichever limit happened to be
+ * stricter. Sharing it also means a legitimate sign-up spends the budget that the
+ * sign-in is about to need.
+ */
+export async function accountIpBucket(ip: string): Promise<string> {
+  return `account-ip:${await digest(ip)}`;
+}
+
+export async function accountEmailBucket(email: string): Promise<string> {
+  return `account-email:${await digest(email.trim().toLowerCase())}`;
+}
+
+/** Registration, per IP, over a day-long window. */
+export async function accountRegisterIpBucket(ip: string): Promise<string> {
+  return `account-register-ip:${await digest(ip)}`;
+}
+
+/** Registration, per address, over a day-long window. */
+export async function accountRegisterEmailBucket(email: string): Promise<string> {
+  return `account-register-email:${await digest(email.trim().toLowerCase())}`;
+}
+
 const UPSERT = `
 INSERT INTO rate_limits (bucket, window_start, count) VALUES (?, ?, 1)
 ON CONFLICT(bucket) DO UPDATE SET

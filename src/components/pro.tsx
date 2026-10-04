@@ -4,7 +4,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { open as openFileDialog } from "@tauri-apps/plugin-dialog";
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { format, Strings } from "../i18n";
+import { format, formatCount, Strings } from "../i18n";
 import { formatBytes } from "../lib";
 import {
   DefragOutcome,
@@ -242,8 +242,7 @@ export function ZeroTraceCard({
       setShred(result);
       pushToast(
         "success",
-        format(s.zeroTrace.shredDone, {
-          count: result.shredded_count,
+        formatCount(s.zeroTrace.shredDone, result.shredded_count, {
           size: formatBytes(result.bytes_overwritten),
         }),
       );
@@ -687,7 +686,7 @@ export function DriverBoosterCard({
         }),
       );
     } else {
-      pushToast("success", format(s.driverBooster.opened, { count: batch.length }));
+      pushToast("success", formatCount(s.driverBooster.opened, batch.length));
     }
   }
 
@@ -787,7 +786,7 @@ export function DriverBoosterCard({
             disabled={selectedPages.length === 0}
             className="mt-3 w-full rounded-xl bg-[linear-gradient(to_right,var(--app-accent),var(--app-accent2))] py-2.5 text-[13px] font-bold text-slate-900 transition hover:-translate-y-px hover:brightness-110 disabled:opacity-40 disabled:hover:translate-y-0 disabled:hover:brightness-100"
           >
-            {format(s.driverBooster.openSelected, { count: selectedPages.length })}
+            {formatCount(s.driverBooster.openSelected, selectedPages.length)}
           </button>
         </>
       )}

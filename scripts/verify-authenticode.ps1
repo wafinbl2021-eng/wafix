@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory)][ValidateNotNullOrEmpty()][string[]]$Path,
-    [string]$ExpectedPublisher = 'Aurelio Avila',
+    [string]$ExpectedPublisher = 'Wafi',
     [string]$SignToolPath = $env:SIGNTOOL_PATH
 )
 $ErrorActionPreference = 'Stop'

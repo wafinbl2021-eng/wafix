@@ -343,6 +343,63 @@ const REVIEWED_AS_CORRECT = new Set([
   "fr:tabs.applications",
   "fr:applications.version",
   "de:applications.version",
+
+  // The application's own name. A product name is the same word in every
+  // language; translating it would hand the reader a term they cannot search
+  // for and that names nothing. Same treatment as the promo-card titles above,
+  // applied to the rebrand.
+  "it:appName",
+  "fr:appName",
+  "es:appName",
+  "de:appName",
+  "pt:appName",
+  "ar:appName",
+
+  // HUD readout labels. FPS, GPU and VRAM are the acronyms the hardware press
+  // uses unchanged in every one of these languages, Arabic included; a
+  // translated form would be less recognisable to the reader, not more.
+  // "DROP" is the standard overlay abbreviation for dropped frames, and
+  // "Temp." is the abbreviation printed on temperature readouts — both are what
+  // these five locales actually write. (Arabic already uses its own words for
+  // those two, so it needs no entry here.)
+  "it:hudLabels.fps",
+  "fr:hudLabels.fps",
+  "es:hudLabels.fps",
+  "de:hudLabels.fps",
+  "pt:hudLabels.fps",
+  "ar:hudLabels.fps",
+  "it:hudLabels.drop",
+  "fr:hudLabels.drop",
+  "es:hudLabels.drop",
+  "de:hudLabels.drop",
+  "pt:hudLabels.drop",
+  "it:hudLabels.gpu",
+  "fr:hudLabels.gpu",
+  "es:hudLabels.gpu",
+  "de:hudLabels.gpu",
+  "pt:hudLabels.gpu",
+  "ar:hudLabels.gpu",
+  "it:hudLabels.temp",
+  "fr:hudLabels.temp",
+  "es:hudLabels.temp",
+  "de:hudLabels.temp",
+  "pt:hudLabels.temp",
+  "it:hudLabels.vram",
+  "fr:hudLabels.vram",
+  "es:hudLabels.vram",
+  "de:hudLabels.vram",
+  "pt:hudLabels.vram",
+  "ar:hudLabels.vram",
+
+  // Arabic for the three names that are the same in every language. Each of
+  // these keys already had an entry for the five European locales further up;
+  // the Arabic locale was added afterwards and needs the same three.
+  //   "PRO"           — the plan tier's own name, untranslated in the others too
+  //   "V-Cache"       — AMD's name for the cache
+  //   "Windows Update" — the Microsoft product name
+  "ar:badges.pro",
+  "ar:x3d.vcacheBadge",
+  "ar:hardware.winUpdateLabel",
 ]);
 
 const unexplained = untranslated.filter((r) => !REVIEWED_AS_CORRECT.has(`${r.locale}:${r.key}`));

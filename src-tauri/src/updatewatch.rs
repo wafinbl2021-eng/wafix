@@ -367,7 +367,7 @@ mod tests {
 // Keep the task at the scheduler root. `schtasks` cannot create a missing
 // folder from a task path, and managed Windows installations may report that
 // failure as the misleading "Access is denied".
-pub const TASK_NAME: &str = "PC Tweaker Update drift watch";
+pub const TASK_NAME: &str = "Wafi X Update drift watch";
 
 #[cfg(test)]
 mod task_name_tests {
@@ -376,6 +376,18 @@ mod task_name_tests {
     #[test]
     fn scheduled_task_does_not_depend_on_a_preexisting_folder() {
         assert!(!TASK_NAME.contains(['\\', '/']));
+    }
+
+    #[test]
+    fn scheduled_task_is_named_after_this_product() {
+        // The name is user-visible in Task Scheduler. When the product was
+        // renamed, a task left carrying the old name would sit on the user's
+        // machine reading "PC Tweaker" with no way for them to connect it to
+        // the app they actually installed.
+        assert!(
+            TASK_NAME.starts_with("Wafi X "),
+            "the drift-watch task is not named after this product: {TASK_NAME}",
+        );
     }
 }
 
@@ -400,25 +412,27 @@ pub fn notify(reverted_count: usize) -> Result<(), String> {
     const CREATE_NO_WINDOW: u32 = 0x0800_0000;
 
     let body = if reverted_count == 1 {
-        "A Windows update reverted 1 tweak. Open PC Tweaker to re-apply it.".to_string()
+        "A Windows update reverted 1 tweak. Open Daltoon X to re-apply it.".to_string()
     } else {
         format!(
-            "A Windows update reverted {reverted_count} tweaks. Open PC Tweaker to re-apply them."
+            "A Windows update reverted {reverted_count} tweaks. Open Daltoon X to re-apply them."
         )
     };
 
     // The AppID has to be one Windows already knows, or the toast is dropped
     // with no error at all - which is how this nearly shipped broken. It
     // looked for a Start Menu shortcut named "PC Tweaker.lnk" while the
-    // installer writes "pc-tweaker-app.lnk", so every notification would have
-    // borrowed Windows PowerShell's identity and arrived as PowerShell
+    // installer wrote a differently-named one, so every notification would
+    // have borrowed Windows PowerShell's identity and arrived as PowerShell
     // talking about tweaks.
     //
-    // Both real identities are asked for by name, Store package first, then
-    // the desktop bundle. If neither is registered - a portable copy, or a
-    // dev build - nothing is sent, and the drift card says the same thing
-    // next time the app opens. A notification wearing somebody else's name is
-    // worse than one that never arrived.
+    // Wafi X asks for exactly one identity: its own bundle identifier. The
+    // PC Tweaker identities this list used to hold are gone deliberately.
+    // Falling back to one of them would let Wafi X speak under another
+    // product's name, which is the failure described above. If it is not
+    // registered - a portable copy, or a dev build - nothing is sent, and the
+    // drift card says the same thing next time the app opens. A notification
+    // wearing somebody else's name is worse than one that never arrived.
     let script = format!(
         r#"
 $ErrorActionPreference = 'Stop'
@@ -426,13 +440,13 @@ $ErrorActionPreference = 'Stop'
 [Windows.Data.Xml.Dom.XmlDocument, Windows.Data.Xml.Dom, ContentType=WindowsRuntime] > $null
 $known = @(Get-StartApps | Select-Object -ExpandProperty AppID)
 $appId = $null
-foreach ($c in @('AurelioAvila.PCTweaker_27nraqq9g21x0!App', 'com.aurel.pc-tweaker-app')) {{
+foreach ($c in @('app.wafix.desktop')) {{
   if ($known -contains $c) {{ $appId = $c; break }}
 }}
 if (-not $appId) {{ exit 3 }}
 $xml = New-Object Windows.Data.Xml.Dom.XmlDocument
 $xml.LoadXml(@'
-<toast><visual><binding template="ToastGeneric"><text>PC Tweaker</text><text>{body}</text></binding></visual></toast>
+<toast><visual><binding template="ToastGeneric"><text>Daltoon X</text><text>{body}</text></binding></visual></toast>
 '@)
 [Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier($appId).Show([Windows.UI.Notifications.ToastNotification]::new($xml))
 "#

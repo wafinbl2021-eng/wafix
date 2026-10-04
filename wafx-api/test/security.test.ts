@@ -455,6 +455,10 @@ describe("cross-origin requests", () => {
     ["/api/admin/releases", "POST", { version: "1.2.3", channel: "stable", installer_url: "https://a.example/b.exe" }],
     ["/api/admin/releases/r1", "PATCH", { notes: "n" }],
     ["/api/admin/releases/r1", "DELETE", {}],
+    ["/api/admin/accounts/x/pro", "POST", {}],
+    ["/api/admin/accounts/x/pro", "DELETE", { revoke_reason: "test" }],
+    ["/api/admin/accounts/x/disable", "POST", {}],
+    ["/api/admin/accounts/x/enable", "POST", {}],
   ];
 
   test("a request with a foreign Origin is refused on every mutating route", async () => {
@@ -479,13 +483,17 @@ describe("cross-origin requests", () => {
           `SELECT (SELECT count(*) FROM app_categories) AS c,
                   (SELECT count(*) FROM apps) AS a,
                   (SELECT count(*) FROM app_versions) AS v,
-                  (SELECT count(*) FROM wafx_releases) AS r`,
+                  (SELECT count(*) FROM wafx_releases) AS r,
+                  (SELECT count(*) FROM pro_grants) AS pg,
+                  (SELECT count(*) FROM accounts) AS ac`,
         )
-        .get() as { c: number; a: number; v: number; r: number };
+        .get() as { c: number; a: number; v: number; r: number; pg: number; ac: number };
       assert.equal(counts.c, 0, "a category was created by a cross-origin request");
       assert.equal(counts.a, 0, "an application was created by a cross-origin request");
       assert.equal(counts.v, 0, "a version was created by a cross-origin request");
       assert.equal(counts.r, 0, "a release was created by a cross-origin request");
+      assert.equal(counts.pg, 0, "a pro grant was created by a cross-origin request");
+      assert.equal(counts.ac, 0, "an account was modified by a cross-origin request");
     } finally {
       h.close();
     }
@@ -672,14 +680,14 @@ describe("nothing leaks", () => {
   test("an unauthenticated caller learns nothing about admin accounts", async () => {
     const h = await signedIn();
     try {
-      for (const path of ["/api/admin/apps", "/api/admin/categories", "/api/admin/audit", "/api/admin/me", "/api/admin/releases"]) {
+      for (const path of ["/api/admin/apps", "/api/admin/categories", "/api/admin/audit", "/api/admin/me", "/api/admin/releases", "/api/admin/accounts"]) {
         const { status, body } = await h.json<Record<string, unknown>>(path, {
           headers: { cookie: "wafx_admin=made-up" },
         });
         // 401, and the body carries no data from any table.
         assert.equal(status, 401, `${path} answered ${status} to a forged cookie`);
         const raw = JSON.stringify(body);
-        for (const leak of ["wafi", "password", "salt", "hash", "admins", "sessions"]) {
+        for (const leak of ["wafi", "password", "salt", "hash", "admins", "sessions", "pro_grants", "pro_grant", "password_hash", "password_salt", "iterations", "account_id", "grant_id"]) {
           assert.ok(!raw.includes(leak), `${path} mentions "${leak}" in a 401`);
         }
       }

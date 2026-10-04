@@ -1,4 +1,7 @@
-export type Lang = "it" | "en" | "fr" | "es" | "de" | "pt";
+import { ar } from "./locales/ar";
+import type { ThemeName } from "./theme";
+
+export type Lang = "it" | "en" | "fr" | "es" | "de" | "pt" | "ar";
 
 export const LANGUAGES: { code: Lang; native: string }[] = [
   { code: "it", native: "Italiano" },
@@ -7,6 +10,7 @@ export const LANGUAGES: { code: Lang; native: string }[] = [
   { code: "es", native: "Español" },
   { code: "de", native: "Deutsch" },
   { code: "pt", native: "Português" },
+  { code: "ar", native: "العربية" },
 ];
 
 export interface TweakText {
@@ -16,7 +20,7 @@ export interface TweakText {
 
 export interface Strings {
   appName: string;
-  appliedCount: string; // "{applied} of {total} tweaks active" — use {applied}/{total}
+  appliedCount: PluralString; // "{applied} of {total} tweaks active" — use {applied}/{total}
   headerNote: string;
   advisor: {
     eyebrow: string;
@@ -36,14 +40,14 @@ export interface Strings {
     // file, and "1 tweak non risultano" is the kind of sentence that makes a
     // product feel machine-made.
     afterUpdateOne: string; // uses {patch}
-    afterUpdateMany: string; // uses {count} {patch}
+    afterUpdateMany: PluralString; // uses {count} {patch}
     noUpdateOne: string;
-    noUpdateMany: string; // uses {count}
+    noUpdateMany: PluralString; // uses {count}
     reapplyOne: string;
-    reapplyMany: string; // uses {count}
+    reapplyMany: PluralString; // uses {count}
     reapplying: string;
     reappliedOne: string;
-    reappliedMany: string; // uses {count}
+    reappliedMany: PluralString; // uses {count}
   };
   crashes: {
     title: string;
@@ -95,7 +99,7 @@ export interface Strings {
     ledger: string;
     applications: string;
   };
-  /** The Wafi X catalog screen (src/components/applications.tsx). Every
+  /** The Daltoon X catalog screen (src/components/applications.tsx). Every
    *  string the panel needs, including the four install states, because they
    *  are what the user is looking at while a download runs. */
   applications: {
@@ -112,6 +116,19 @@ export interface Strings {
     installed: string;
     noVersion: string;
     version: string; // "Version {version}"
+    /**
+     * Steam-depot tooling that Daltoon X launches but never installs. The
+     * product name "LuaTools" and the framework name ".NET 8 Desktop Runtime"
+     * are proper nouns and read the same in every language, so they are not
+     * translated here.
+     */
+    luaToolsDescription: string;
+    luaToolsOpen: string;
+    luaToolsNotInstalled: string;
+    luaToolsRuntimeMissing: string;
+    luaToolsOfficialPage: string;
+    luaToolsStarting: string;
+    luaToolsFailed: string;
   };
   healthPanel: {
     title: string;
@@ -170,11 +187,11 @@ export interface Strings {
   command: {
     statusQuiet: string;
     statusScanning: string;
-    statusFindings: string; // uses {count}
+    statusFindings: PluralString; // uses {count}
     domainsLine: string;
     consent: string;
     runScan: string;
-    reviewFindings: string; // uses {count}
+    reviewFindings: PluralString; // uses {count}
     memTitle: string;
     pressureLow: string;
     pressureElevated: string;
@@ -213,7 +230,7 @@ export interface Strings {
     disk: string;
     uptime: string;
     uptimeValue: string; // uses {hours} {minutes}
-    cores: string; // uses {count}
+    cores: PluralString; // uses {count}
   };
   startupManager: {
     title: string;
@@ -224,7 +241,7 @@ export interface Strings {
     impactNote: string;
     refresh: string;
     refreshing: string;
-    hiddenOrphans: string;
+    hiddenOrphans: PluralString; // uses {count}
     /** Which of Windows' three startup mechanisms a row came from. */
     locationRun: string;
     locationRun32: string;
@@ -283,7 +300,7 @@ export interface Strings {
     restoreButton: string;
     restoring: string;
     restoredToast: string; // uses {browser}
-    cleanedToast: string; // uses {removed} {kept}
+    cleanedToast: PluralString; // uses {removed} {kept}
     nothingToClean: string;
     topDomains: string;
     whitelistTitle: string;
@@ -305,7 +322,7 @@ export interface Strings {
     blockedBy: string; // uses {process}
     selectedTotal: string; // uses {size}
     cleanedToast: string; // uses {freed}
-    skippedNote: string; // uses {count}
+    skippedNote: PluralString; // uses {count}
     catShaders: string;
     catLaunchers: string;
     catApps: string;
@@ -361,7 +378,7 @@ export interface Strings {
     everythingInFree: string;
     included: string;
     reassurance: string;
-    freeFeatures: string[];
+    freeFeatures: PluralString[];
     proFeatures: string[];
     lifetimeName: string;
     lifetimeTagline: string;
@@ -370,6 +387,12 @@ export interface Strings {
     everythingInPro: string;
     lifetimeExclusive: string;
     lifetimeFeatures: string[];
+    /**
+     * Shown when a buying button is pressed. Daltoon X 1.0.0 grants Pro by hand:
+     * there is no checkout, so the button cannot do what it says and says this
+     * instead of failing silently.
+     */
+    notAvailableYet: string;
   };
   toggle: { on: string; off: string };
   driverBooster: {
@@ -381,8 +404,8 @@ export interface Strings {
     selectNone: string;
     selectedCount: string;
     pagesForSelection: string;
-    openSelected: string;
-    opened: string;
+    openSelected: PluralString;
+    opened: PluralString;
     openedCapped: string;
     allCurrent: string;
     nothingActionable: string;
@@ -415,7 +438,7 @@ export interface Strings {
     shredBody: string;
     shredButton: string;
     shredding: string;
-    shredDone: string;
+    shredDone: PluralString; // uses {count} {size}
     shredSummary: string;
     shredWarning: string;
     ssdCaveat: string;
@@ -438,6 +461,36 @@ export interface Strings {
     sizeCompact: string;
     sizeNormal: string;
   };
+  /**
+   * The overlay's own metric labels.
+   *
+   * Separate from the `hud` card above because these render in the always-on-top
+   * window over a game, not in the app, and the two have different rules. These
+   * are space-constrained to a few characters and mostly must not change at all:
+   * CPU, GPU, RAM, VRAM and FPS are the abbreviations every tuning tool prints,
+   * so a reader mid-game recognises them at a glance and a translation would cost
+   * them that. DROP and TEMP are the two that are English words rather than
+   * universal abbreviations, and those are translated.
+   */
+  hudLabels: {
+    fps: string;
+    drop: string;
+    cpu: string;
+    gpu: string;
+    temp: string;
+    ram: string;
+    vram: string;
+  };
+  /**
+   * One label per theme, keyed by the theme's own code.
+   *
+   * Typed as `Record<ThemeName, string>` rather than a loose string map so that
+   * adding a theme to `src/theme.ts` is a compile error until every locale has a
+   * name for it. These are the picker's `title` and `aria-label` — the only text
+   * naming a theme anywhere in the app — so a missing entry would ship a colour
+   * with no accessible name at all.
+   */
+  themeLabels: Record<ThemeName, string>;
   updater: {
     title: string; // uses {version}
     body: string;
@@ -455,7 +508,7 @@ export interface Strings {
     subtitle: string;
     active: string; // uses {name}
     activeFreed: string; // uses {name} {freed}
-    gamesCount: string; // uses {count}
+    gamesCount: PluralString; // uses {count}
     addGame: string;
   };
   turboBoost: {
@@ -492,17 +545,17 @@ export interface Strings {
     saveButton: string;
     savedHeading: string;
     empty: string;
-    tweakCount: string; // uses {count}
+    tweakCount: PluralString; // uses {count}
     apply: string;
     applying: string;
     exportButton: string;
     importButton: string;
     deleteButton: string;
     savedToast: string; // uses {name}
-    appliedToast: string; // uses {count}
+    appliedToast: PluralString; // uses {count}
     exportedToast: string;
-    importedToast: string; // uses {count}
-    droppedWarning: string; // uses {count}
+    importedToast: PluralString; // uses {count}
+    droppedWarning: PluralString; // uses {count}
     nameRequired: string;
     reviewNotice: string;
     signInRequired: string;
@@ -525,12 +578,12 @@ export interface Strings {
     stepGaming: string;
     stepJunk: string;
     allGood: string;
-    issuesFound: string; // uses {count}
+    issuesFound: PluralString; // uses {count}
     selectAll: string;
     deselectAll: string;
     fixAll: string;
     fixing: string; // uses {done} {total}
-    fixedToast: string; // uses {count}
+    fixedToast: PluralString; // uses {count}
     proIssuesTitle: string;
     unlockPro: string;
     scanAgain: string;
@@ -579,13 +632,13 @@ export interface Strings {
     groupNotRecommended: string;
     tailoredNote: string;
     /** The two primary actions, each carrying its own count. */
-    fixRecommended: string; // uses {count}
-    fixEverything: string; // uses {count}
+    fixRecommended: PluralString; // uses {count}
+    fixEverything: PluralString; // uses {count}
     nothingSelected: string;
-    foundHeadline: string; // uses {count}
+    foundHeadline: PluralString; // uses {count}
     foundNone: string;
     doneTitle: string;
-    doneBody: string; // uses {count}
+    doneBody: PluralString; // uses {count}
     fixHeading: string;
   };
   ram: {
@@ -609,11 +662,11 @@ export interface Strings {
   restore: {
     button: string;
     title: string;
-    body: string; // uses {count}
+    body: PluralString; // uses {count}
     confirm: string;
     cancel: string;
     running: string;
-    doneToast: string; // uses {count}
+    doneToast: PluralString; // uses {count}
     nothingToast: string;
   };
   passwordCheck: {
@@ -623,7 +676,7 @@ export interface Strings {
     button: string;
     checking: string;
     safe: string;
-    breached: string; // uses {count}
+    breached: PluralString; // uses {count}
     error: string;
   };
   paywall: {
@@ -638,7 +691,7 @@ export interface Strings {
     previewEmpty: string;
     previewNotAccessible: string;
     previewTruncated: string;
-    selectedSummary: string; // uses {count} {size}
+    selectedSummary: PluralString; // uses {count} {size}
     confirmSelected: string;
     title: string;
     body: string; // uses {name}
@@ -647,8 +700,8 @@ export interface Strings {
   };
   cleanupButton: string;
   cleanupRunning: string;
-  cleanupResultToast: string; // uses {deleted} {freed} {skipped}
-  cleanupResultToastSkipped: string; // appended fragment, uses {skipped}
+  cleanupResultToast: PluralString; // uses {deleted} {freed} {skipped}
+  cleanupResultToastSkipped: PluralString; // appended fragment, uses {skipped}
   diskOptimize: {
     title: string;
     description: string;
@@ -674,38 +727,16 @@ export interface Strings {
     runningWarning: string; // uses {browser}
     clearedToast: string; // uses {browser} {freed}
   };
-  tweakyDriverPromo: {
-    title: string;
-    description: string;
-    button: string;
-    error: string;
-  };
-  redaxaPromo: {
-    title: string;
-    description: string;
-    button: string;
-  };
-  uninstallerPromo: {
-    title: string;
-    description: string;
-    button: string;
-    confirmTitle: string;
-    confirmBody: string;
-    confirmUnsigned: string;
-    confirmDownload: string;
-    confirmOpenPage: string;
-    cancel: string;
-  };
   largeFiles: {
     title: string;
     description: string;
     chooseFolder: string;
     scanning: string;
     noneFound: string; // uses {size}
-    foundCount: string; // uses {count}
-    moveSelected: string; // uses {count}
+    foundCount: PluralString; // uses {count}
+    moveSelected: PluralString; // uses {count}
     deleting: string;
-    deletedToast: string; // uses {count} {freed}
+    deletedToast: PluralString; // uses {count} {freed}
   };
   diskHealth: {
     title: string;
@@ -723,10 +754,10 @@ export interface Strings {
     chooseFolder: string;
     scanning: string;
     noneFound: string;
-    copies: string; // uses {count} {size}
-    moveSelected: string; // uses {count}
+    copies: PluralString; // uses {count} {size}
+    moveSelected: PluralString; // uses {count}
     deleting: string;
-    deletedToast: string; // uses {count} {freed}
+    deletedToast: PluralString; // uses {count} {freed}
   };
   ipMask: {
     title: string;
@@ -760,7 +791,7 @@ export interface Strings {
     unavailable: string;
     dieLabel: string; // uses {index}
     dieCache: string; // uses {mb}
-    dieThreads: string; // uses {count}
+    dieThreads: PluralString; // uses {count}
     vcacheBadge: string;
     processesTitle: string;
     processesHint: string;
@@ -801,14 +832,14 @@ export interface Strings {
     driversSubtitle: string;
     driversRescan: string;
     driversScanning: string;
-    driversCounted: string; // uses {count}
-    driversAging: string; // uses {count}
-    driversStale: string; // uses {count}
+    driversCounted: PluralString; // uses {count}
+    driversAging: PluralString; // uses {count}
+    driversStale: PluralString; // uses {count}
     driversAllCurrent: string;
     driversNone: string;
-    driversShowAll: string; // uses {count}
+    driversShowAll: PluralString; // uses {count}
     driversShowLess: string;
-    driversInboxNote: string; // uses {count}
+    driversInboxNote: PluralString; // uses {count}
     ageYears: string; // uses {years}
     ageYear: string; // uses {years}, singular form
     ageMonths: string; // uses {months}
@@ -858,7 +889,7 @@ export interface Strings {
     winUpdateOpened: string;
     winUpdateSearching: string;
     winUpdateTakesAWhile: string;
-    winUpdateInstall: string; // uses {count}
+    winUpdateInstall: PluralString; // uses {count}
     winUpdateInstalling: string;
     winUpdateNone: string;
     winUpdateFailed: string; // uses {detail}
@@ -885,6 +916,12 @@ export interface Strings {
     photoFailed: string;
     support: string;
     reportIssue: string;
+    /**
+     * Shown in place of a "report an issue" link. Daltoon X 1.0.0 has no support
+     * page, and the previous one belonged to another product — so the row says
+     * there is nowhere to go rather than sending the user somewhere unrelated.
+     */
+    supportUnavailable: string;
     aboutBody: string;
     close: string;
   };
@@ -893,9 +930,14 @@ export interface Strings {
     register: string;
     email: string;
     password: string;
+    /** Registration's second password field. */
+    confirmPassword: string;
+    /** Help text under the registration password fields. */
+    passwordHint: string;
     loginButton: string;
-    rememberMe: string;
     registerButton: string;
+    /** Shown while the session is being restored on launch. */
+    checkingSession: string;
     working: string;
     logout: string;
     loggedInAs: string; // uses {email}
@@ -903,7 +945,10 @@ export interface Strings {
     switchToRegister: string;
     switchToLogin: string;
     emailInvalid: string;
+    emailRequired: string;
+    passwordRequired: string;
     passwordTooShort: string;
+    passwordMismatch: string;
     firstName: string;
     lastName: string;
     registerDetailsRequired: string;
@@ -933,6 +978,107 @@ export interface Strings {
   };
 }
 
+// ---- Plural-aware strings ---------------------------------------------------
+//
+// A counted noun does not survive translation unchanged. English gets away with
+// one form ("3 tweaks", and "1 tweaks" too, which is why the six existing
+// locales have always shipped a small number of wrong strings). Arabic picks a
+// form of the NOUN from one of six categories: no files, one file, two files,
+// few files, many files, other. "3 ملف" is simply wrong.
+//
+// So a string that counts something is allowed to carry a form per category
+// instead of a single template. Languages with nothing to say about it — the six
+// that ship today — keep a plain string, and `formatCount` renders it exactly as
+// before. Nothing about their output changes.
+
+/** The CLDR plural categories, in the order `Intl.PluralRules` reports them. */
+export type PluralCategory = "zero" | "one" | "two" | "few" | "many" | "other";
+
+export const PLURAL_CATEGORIES: PluralCategory[] = ["zero", "one", "two", "few", "many", "other"];
+
+export interface PluralForms {
+  /**
+   * The locale whose plural rules choose between these forms, and the marker
+   * that tells tooling this is a plural bundle rather than a nested table.
+   *
+   * Carrying the locale with the forms is what lets `formatCount` be correct
+   * without every call site passing the current language down: the grammar that
+   * applies is a property of the string, not of the screen rendering it. It also
+   * means no module-level "current language" state that a forgotten prop could
+   * desynchronise from what is actually on screen.
+   */
+  $plural: string;
+  zero?: string;
+  one?: string;
+  two?: string;
+  few?: string;
+  many?: string;
+  /**
+   * Required, and not optional for tidiness: it is the CLDR fallback, so a
+   * category this table does not name — "paucal", an ordinal probe, or a locale
+   * added later — still renders a real sentence instead of a hole.
+   */
+  other: string;
+}
+
+/** A string, or a per-count-category set of them. */
+export type PluralString = string | PluralForms;
+
+/**
+ * Builds a plural bundle. `other` is required because it is the CLDR fallback:
+ * a category this table does not name — "paucal", an ordinal probe, or a locale
+ * added later — must still render something rather than a hole.
+ */
+export function plurals(locale: string, forms: Omit<PluralForms, "$plural">): PluralForms {
+  return { $plural: locale, ...forms };
+}
+
+/** True for a plural bundle, and only for one. */
+export function isPluralForms(value: PluralString | unknown): value is PluralForms {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    typeof (value as PluralForms).$plural === "string"
+  );
+}
+
+const pluralRulesFor = new Map<string, Intl.PluralRules>();
+
+function pluralRules(locale: string): Intl.PluralRules {
+  const cached = pluralRulesFor.get(locale);
+  if (cached) return cached;
+  let rules: Intl.PluralRules;
+  try {
+    rules = new Intl.PluralRules(locale);
+  } catch {
+    // A locale the runtime has no data for. English's two-form rule is the
+    // safest thing available and is never worse than rendering nothing.
+    rules = new Intl.PluralRules("en");
+  }
+  pluralRulesFor.set(locale, rules);
+  return rules;
+}
+
+/**
+ * Which form of the noun a count calls for, in `locale`.
+ *
+ * Anything outside the six named categories falls back to `other`, which is what
+ * CLDR specifies and is the only form guaranteed to exist.
+ */
+export function pluralCategoryFor(locale: string, count: number): PluralCategory {
+  const selected = pluralRules(locale).select(count);
+  return (PLURAL_CATEGORIES as string[]).includes(selected)
+    ? (selected as PluralCategory)
+    : "other";
+}
+
+/** The template `value` wants for `count`, before `{…}` substitution. */
+export function pluralTemplate(value: PluralString, count: number): string {
+  if (typeof value === "string") return value;
+  const category = pluralCategoryFor(value.$plural, count);
+  return value[category] ?? value.other;
+}
+
 function format(template: string, vars: Record<string, string | number>): string {
   return Object.entries(vars).reduce(
     (acc, [key, value]) => acc.replaceAll(`{${key}}`, String(value)),
@@ -942,6 +1088,26 @@ function format(template: string, vars: Record<string, string | number>): string
 
 export { format };
 
+/**
+ * Renders a string that counts something.
+ *
+ * A plain string is substituted exactly as `format` would — byte-identical
+ * output, which is why the six locales that already shipped are unaffected. A
+ * plural bundle picks the form its locale's grammar asks for and substitutes
+ * into that.
+ *
+ * `count` is always bound to `{count}` if the caller has not already supplied
+ * it, so a template can name the number in whichever position its language puts
+ * it. Arabic puts the number after the noun; English puts it before.
+ */
+export function formatCount(
+  value: PluralString,
+  count: number,
+  vars: Record<string, string | number> = {},
+): string {
+  return format(pluralTemplate(value, count), { ...vars, count });
+}
+
 const it: Strings = {
   coffee: {
     nav: "Offrimi un caffè",
@@ -949,7 +1115,7 @@ const it: Strings = {
     fewer: "Un caffè in meno",
     more: "Un caffè in più",
   },
-  appName: "PC Tweaker",
+  appName: "Daltoon X",
   appliedCount: "{applied} di {total} tweak attivi",
   headerNote:
     "Esamina ogni modifica prima di applicarla. Gli strumenti di ripristino coprono le impostazioni supportate; pulizia e riparazione hanno limiti di recupero diversi.",
@@ -1045,6 +1211,14 @@ const it: Strings = {
     installed: "Installata",
     noVersion: "Nessuna versione pubblicata",
     version: "Versione {version}",
+    luaToolsDescription:
+      "Strumenti per i depositi Steam: depots, manifest e download. Daltoon X non li installa al posto tuo.",
+    luaToolsOpen: "Apri LuaTools",
+    luaToolsNotInstalled: "LuaTools non è installato",
+    luaToolsRuntimeMissing: "Installa .NET 8 Desktop Runtime",
+    luaToolsOfficialPage: "Vai al sito di LuaTools",
+    luaToolsStarting: "Avvio di LuaTools…",
+    luaToolsFailed: "Impossibile avviare LuaTools",
   },
   healthPanel: {
     title: "Salute del PC",
@@ -1359,6 +1533,8 @@ const it: Strings = {
       "Ogni versione futura inclusa, senza mai rinnovare",
       "Assistenza prioritaria, risposta dallo sviluppatore",
     ],
+    notAvailableYet:
+      "Pro viene assegnato manualmente nella 1.0.0: non c'è ancora un pulsante di acquisto.",
   },
   toggle: { on: "Attivato", off: "Disattivato" },
   driverBooster: {
@@ -1377,7 +1553,7 @@ const it: Strings = {
       "Aperte {opened} pagine su {total}: le altre restano selezionate, riprova per aprirle.",
     allCurrent: "Nessun driver risulta datato.",
     nothingActionable: "Nessun driver datato con una pagina del produttore disponibile.",
-    note: "PC Tweaker non scarica pacchetti driver da solo: non esiste un’API dei produttori che dica qual è la versione giusta per il tuo esatto dispositivo, e installare il driver video sbagliato è uno dei pochi errori che può lasciarti senza schermo. Qui si automatizza la parte noiosa — trovare le pagine — non la scelta. Per i driver che Windows Update conosce davvero, usa il pulsante qui sopra.",
+    note: "Daltoon X non scarica pacchetti driver da solo: non esiste un’API dei produttori che dica qual è la versione giusta per il tuo esatto dispositivo, e installare il driver video sbagliato è uno dei pochi errori che può lasciarti senza schermo. Qui si automatizza la parte noiosa — trovare le pagine — non la scelta. Per i driver che Windows Update conosce davvero, usa il pulsante qui sopra.",
   },
   secureDefrag: {
     title: "Deframmentazione sicura",
@@ -1427,7 +1603,7 @@ const it: Strings = {
       "Accanto agli FPS medi c’è DROP: la velocità dell’1% di fotogrammi peggiori, quello che altrove trovi chiamato «1% low». È il numero che si muove quando il gioco scatta, mentre la media resta alta e non te lo dice. Più DROP è vicino alla media, più il gioco è fluido.",
     fpsStart: "Misura FPS",
     fpsStop: "Ferma misura",
-    fpsNeedsAdmin: "Per misurare gli FPS serve avviare PC Tweaker come amministratore.",
+    fpsNeedsAdmin: "Per misurare gli FPS serve avviare Daltoon X come amministratore.",
     fpsRunning:
       "Misurazione attiva: gli FPS compaiono nell’overlay appena un gioco inizia a disegnare.",
     show: "Mostra",
@@ -1438,6 +1614,31 @@ const it: Strings = {
     lockedHint: "Bloccato: i clic lo attraversano e raggiungono il gioco. Sbloccalo per spostarlo.",
     sizeCompact: "Compatto",
     sizeNormal: "Normale",
+  },
+  hudLabels: {
+    fps: "FPS",
+    drop: "DROP",
+    cpu: "CPU",
+    gpu: "GPU",
+    temp: "Temp.",
+    ram: "RAM",
+    vram: "VRAM",
+  },
+  themeLabels: {
+    violet: "Violeta",
+    teal_depths: "Profundezas turquesa",
+    amber_dusk: "Crepúsculo de âmbar",
+    crimson_steel: "Aço carmesim",
+    ocean_blue: "Azul oceânico",
+    forest_emerald: "Esmeralda florestal",
+    royal_gold: "Ouro real",
+    slate_mono: "Ardósia monocromática",
+    indigo_night: "Noite índigo",
+    coral_sunset: "Pôr do sol coral",
+    rose_quartz: "Quartzo rosa",
+    cyber_lime: "Lima cyber",
+    copper_forge: "Forja de cobre",
+    magenta_pulse: "Pulso magenta",
   },
   updater: {
     title: "Aggiornamento disponibile: v{version}",
@@ -1602,7 +1803,7 @@ const it: Strings = {
     autoOff: "Disattivata",
     autoEvery: "Ogni {interval}",
     autoHint:
-      "Con la pulizia automatica attiva, PC Tweaker libera la RAM da solo a intervalli regolari finché l'app resta aperta.",
+      "Con la pulizia automatica attiva, Daltoon X libera la RAM da solo a intervalli regolari finché l'app resta aperta.",
     autoNext: "Prossima pulizia alle {time}",
     autoDue: "Pulizia in corso...",
     autoLast: "Ultima alle {time}: {amount} liberati",
@@ -1632,7 +1833,7 @@ const it: Strings = {
   },
   paywall: {
     title: "Funzione Pro",
-    body: '"{feature}" fa parte di PC Tweaker Pro, insieme a Game Sessions, ai preset gaming e a ogni funzione futura.',
+    body: '"{feature}" fa parte di Daltoon X Pro, insieme a Game Sessions, ai preset gaming e a ogni funzione futura.',
     unlock: "Vedi piani e prezzi",
     notNow: "Non ora",
     notConnectedToast: "Il pagamento Pro non è ancora collegato in questa versione di sviluppo.",
@@ -1681,33 +1882,6 @@ const it: Strings = {
     clearing: "Svuotamento...",
     runningWarning: "Chiudi {browser} per poterlo svuotare.",
     clearedToast: "{browser}: {freed} liberati.",
-  },
-  tweakyDriverPromo: {
-    title: "Tweaky Driver",
-    description:
-      "Cerca pacchetti driver dalle fonti supportate nella nostra app dedicata. Controlla la compatibilità prima di installare. App separata; copertura variabile.",
-    button: "Esplora Tweaky Driver",
-    error: "Impossibile aprire la pagina. Riprova.",
-  },
-  redaxaPromo: {
-    title: "Redaxa",
-    description:
-      "Hai bloccato telemetria e tracciamento — ma cosa incolli nelle chat AI? Redaxa intercetta dati personali e credenziali prima che un prompt raggiunga qualsiasi modello. Stessa famiglia, stessa regola: niente viene salvato.",
-    button: "Prova sul web",
-  },
-  uninstallerPromo: {
-    title: "PC Tweaker Uninstaller",
-    description:
-      "Rimuovi interi programmi in sicurezza: punto di ripristino automatico, comando verificato e report onesto. Della stessa famiglia di PC Tweaker.",
-    button: "Scarica",
-    confirmTitle: "Scaricare il disinstallatore?",
-    confirmBody:
-      "PC Tweaker Uninstaller è un'app separata della stessa suite e accede con lo stesso account di questa. Il download prende l'installer (circa 4 MB) direttamente dalla sua release su GitHub, per Windows 10 e 11 a 64 bit.",
-    confirmUnsigned:
-      "PC Tweaker 1.10.0 è firmato digitalmente da Aurelio Avila. Verifica autore e firma nelle proprietà del file. SmartScreen può ancora mostrare avvisi; le versioni precedenti potrebbero non essere firmate.",
-    confirmDownload: "Scarica",
-    confirmOpenPage: "Apri invece la pagina",
-    cancel: "Annulla",
   },
   largeFiles: {
     title: "Trova file di grandi dimensioni",
@@ -1819,7 +1993,7 @@ const it: Strings = {
     noTempSensor: "Questa scheda non espone un sensore di temperatura.",
     cpuAcpiSource: "letta dalla zona termica ACPI",
     cpuNoSensor:
-      "Il firmware di questo PC non espone una zona termica ACPI, quindi Windows non ha una temperatura della CPU da leggere. I programmi che la mostrano sempre installano un driver a livello kernel per leggere i registri del processore: PC Tweaker non lo fa, e preferisce dirtelo piuttosto che mostrarti un valore inventato.",
+      "Il firmware di questo PC non espone una zona termica ACPI, quindi Windows non ha una temperatura della CPU da leggere. I programmi che la mostrano sempre installano un driver a livello kernel per leggere i registri del processore: Daltoon X non lo fa, e preferisce dirtelo piuttosto che mostrarti un valore inventato.",
     noGpuTool:
       "Nessuna scheda NVIDIA rilevata. AMD e Intel non forniscono uno strumento di interrogazione equivalente, quindi le loro temperature non sono leggibili senza software del produttore.",
     thermalsUnavailable: "Non riusciamo a leggere i sensori su questo sistema.",
@@ -1894,7 +2068,7 @@ const it: Strings = {
     winUpdateLabel: "Windows Update",
     winUpdateButton: "Cerca su Windows Update",
     winUpdateNote:
-      "Questo controlla solo il catalogo di Windows Update, non i driver specifici elencati sopra: molti produttori (soprattutto per audio e chipset integrati) non pubblicano mai i loro aggiornamenti lì, solo sul proprio sito. PC Tweaker non scarica pacchetti driver per conto suo: non esiste un'API dei produttori per sapere qual è la versione giusta per il tuo esatto dispositivo, e installare il driver video sbagliato è uno dei pochi errori che può lasciarti senza schermo.",
+      "Questo controlla solo il catalogo di Windows Update, non i driver specifici elencati sopra: molti produttori (soprattutto per audio e chipset integrati) non pubblicano mai i loro aggiornamenti lì, solo sul proprio sito. Daltoon X non scarica pacchetti driver per conto suo: non esiste un'API dei produttori per sapere qual è la versione giusta per il tuo esatto dispositivo, e installare il driver video sbagliato è uno dei pochi errori che può lasciarti senza schermo.",
     winUpdateOpened: "Windows Update aperto.",
     winUpdateSearching: "Ricerca in corso...",
     winUpdateTakesAWhile: "Può richiedere un minuto: interroga il catalogo Microsoft.",
@@ -1928,7 +2102,9 @@ const it: Strings = {
     photoFailed: "Impossibile usare questa immagine come foto profilo.",
     support: "Supporto",
     reportIssue: "Segnala un problema",
-    aboutBody: "PC Tweaker — tweak di sistema con backup e ripristino automatico.",
+    supportUnavailable:
+      "Non c'è ancora un canale di assistenza per Daltoon X. L'indirizzo precedente non era nostro.",
+    aboutBody: "Daltoon X — tweak di sistema con backup e ripristino automatico.",
     close: "Chiudi",
   },
   auth: {
@@ -1936,9 +2112,11 @@ const it: Strings = {
     register: "Registrati",
     email: "Email",
     password: "Password",
+    confirmPassword: "Conferma la password",
+    passwordHint: "Almeno 8 caratteri.",
     loginButton: "Accedi",
-    rememberMe: "Ricordami su questo PC",
     registerButton: "Crea account",
+    checkingSession: "Controllo della sessione...",
     working: "...",
     logout: "Esci",
     loggedInAs: "Accesso effettuato come {email}",
@@ -1947,6 +2125,9 @@ const it: Strings = {
     switchToRegister: "Non hai un account? Registrati",
     switchToLogin: "Hai già un account? Accedi",
     emailInvalid: "Inserisci un'email valida.",
+    emailRequired: "Inserisci un indirizzo email.",
+    passwordRequired: "Inserisci la password.",
+    passwordMismatch: "Le due password non corrispondono.",
     passwordTooShort: "La password deve avere almeno 8 caratteri.",
     firstName: "Nome",
     lastName: "Cognome",
@@ -1986,7 +2167,7 @@ const it: Strings = {
     ecoqos_rules: {
       name: "Regole di efficienza per le app in background",
       description:
-        "Assegna una priorità energetica ridotta a eseguibili scelti mentre PC Tweaker è aperto. Le regole si sospendono quando l'app è interattiva; non sono un limite percentuale della CPU.",
+        "Assegna una priorità energetica ridotta a eseguibili scelti mentre Daltoon X è aperto. Le regole si sospendono quando l'app è interattiva; non sono un limite percentuale della CPU.",
     },
     limit_do_background_download: {
       name: "Limite ai download Windows in background",
@@ -2324,7 +2505,7 @@ const en: Strings = {
     fewer: "One coffee fewer",
     more: "One coffee more",
   },
-  appName: "PC Tweaker",
+  appName: "Daltoon X",
   appliedCount: "{applied} of {total} tweaks active",
   headerNote:
     "Review each change before applying it. Restore tools cover supported settings; cleanup and repair operations have different recovery limits.",
@@ -2418,6 +2599,14 @@ const en: Strings = {
     installing: "Installing…",
     installed: "Installed",
     noVersion: "No published version",
+    luaToolsDescription:
+      "Tools for Steam depots — depots, manifests and downloads. Daltoon X does not install it for you.",
+    luaToolsOpen: "Open LuaTools",
+    luaToolsNotInstalled: "LuaTools is not installed",
+    luaToolsRuntimeMissing: "Install .NET 8 Desktop Runtime",
+    luaToolsOfficialPage: "Go to the LuaTools website",
+    luaToolsStarting: "Starting LuaTools…",
+    luaToolsFailed: "Could not start LuaTools",
     version: "Version {version}",
   },
   healthPanel: {
@@ -2728,6 +2917,7 @@ const en: Strings = {
       "Every future release included — no renewal, ever",
       "Priority support, answered by the developer",
     ],
+    notAvailableYet: "Pro is granted by hand in 1.0.0 — there is no purchase button yet.",
   },
   toggle: { on: "On", off: "Off" },
   driverBooster: {
@@ -2745,7 +2935,7 @@ const en: Strings = {
       "Opened {opened} of {total} pages: the rest stay selected, run it again to open them.",
     allCurrent: "No driver is showing its age.",
     nothingActionable: "No ageing driver has a vendor page to open.",
-    note: "PC Tweaker does not download driver packages on its own: there is no vendor API that says which version is right for your exact device, and installing the wrong display driver is one of the few mistakes that can leave you with no screen. This automates the tedious part — finding the pages — not the choice. For drivers Windows Update genuinely knows about, use the button above.",
+    note: "Daltoon X does not download driver packages on its own: there is no vendor API that says which version is right for your exact device, and installing the wrong display driver is one of the few mistakes that can leave you with no screen. This automates the tedious part — finding the pages — not the choice. For drivers Windows Update genuinely knows about, use the button above.",
   },
   secureDefrag: {
     title: "Secure Defragmentation",
@@ -2795,7 +2985,7 @@ const en: Strings = {
       "Beside the average there is DROP: the rate of the worst one percent of frames, the figure elsewhere called the 1% low. It is the number that moves when a game stutters, while the average stays high and says nothing. The closer DROP sits to the average, the smoother the game.",
     fpsStart: "Measure FPS",
     fpsStop: "Stop measuring",
-    fpsNeedsAdmin: "Measuring frame rate needs PC Tweaker started as administrator.",
+    fpsNeedsAdmin: "Measuring frame rate needs Daltoon X started as administrator.",
     fpsRunning:
       "Measuring: the frame rate appears in the overlay as soon as a game starts drawing.",
     show: "Show",
@@ -2806,6 +2996,31 @@ const en: Strings = {
     lockedHint: "Locked: clicks pass through it to the game. Unlock it to move it again.",
     sizeCompact: "Compact",
     sizeNormal: "Normal",
+  },
+  hudLabels: {
+    fps: "FPS",
+    drop: "DROP",
+    cpu: "CPU",
+    gpu: "GPU",
+    temp: "Temp.",
+    ram: "RAM",
+    vram: "VRAM",
+  },
+  themeLabels: {
+    violet: "Violett",
+    teal_depths: "Türkise Tiefen",
+    amber_dusk: "Bernstein-Dämmerung",
+    crimson_steel: "Karminstahl",
+    ocean_blue: "Ozeanblau",
+    forest_emerald: "Wald-Smaragd",
+    royal_gold: "Königliches Gold",
+    slate_mono: "Schiefer Monochrom",
+    indigo_night: "Indigonacht",
+    coral_sunset: "Korall-Sonnenuntergang",
+    rose_quartz: "Rosenquarz",
+    cyber_lime: "Cyber-Limette",
+    copper_forge: "Kupferschmiede",
+    magenta_pulse: "Magenta-Puls",
   },
   updater: {
     title: "Update available: v{version}",
@@ -2967,7 +3182,7 @@ const en: Strings = {
     autoOff: "Off",
     autoEvery: "Every {interval}",
     autoHint:
-      "With automatic cleanup on, PC Tweaker frees RAM by itself at a regular interval for as long as the app stays open.",
+      "With automatic cleanup on, Daltoon X frees RAM by itself at a regular interval for as long as the app stays open.",
     autoNext: "Next cleanup at {time}",
     autoDue: "Cleanup due now...",
     autoLast: "Last at {time}: {amount} freed",
@@ -2997,7 +3212,7 @@ const en: Strings = {
   },
   paywall: {
     title: "Pro feature",
-    body: '"{feature}" is part of PC Tweaker Pro, along with Game Sessions, the gaming presets and every future feature.',
+    body: '"{feature}" is part of Daltoon X Pro, along with Game Sessions, the gaming presets and every future feature.',
     unlock: "See plans & pricing",
     notNow: "Not now",
     notConnectedToast: "Pro payment isn't wired up yet in this development build.",
@@ -3046,33 +3261,6 @@ const en: Strings = {
     clearing: "Clearing...",
     runningWarning: "Close {browser} to clear it.",
     clearedToast: "{browser}: {freed} freed.",
-  },
-  tweakyDriverPromo: {
-    title: "Tweaky Driver",
-    description:
-      "Find driver packages from supported sources in our dedicated app. Review compatibility before installing. Separate app; coverage varies.",
-    button: "Explore Tweaky Driver",
-    error: "Could not open the page. Please try again.",
-  },
-  redaxaPromo: {
-    title: "Redaxa",
-    description:
-      "You've cut telemetry and tracking — but what do you paste into AI chats? Redaxa catches personal data and credentials before a prompt reaches any model. Same family, same rule: nothing gets stored.",
-    button: "Try it on the web",
-  },
-  uninstallerPromo: {
-    title: "PC Tweaker Uninstaller",
-    description:
-      "Remove entire programs safely: automatic restore point, verified command, honest report. From the same family as PC Tweaker.",
-    button: "Download",
-    confirmTitle: "Download the Uninstaller?",
-    confirmBody:
-      "PC Tweaker Uninstaller is a separate app in the same suite, and it signs in with the same account as this one. This downloads the installer (about 4 MB) straight from its GitHub release, for 64-bit Windows 10 and 11.",
-    confirmUnsigned:
-      "PC Tweaker 1.10.0 is digitally signed by Aurelio Avila. Check the publisher and signature in the file properties. SmartScreen warnings can still appear; older releases may be unsigned.",
-    confirmDownload: "Download",
-    confirmOpenPage: "Open the page instead",
-    cancel: "Cancel",
   },
   largeFiles: {
     title: "Find large files",
@@ -3184,7 +3372,7 @@ const en: Strings = {
     noTempSensor: "This card exposes no temperature sensor.",
     cpuAcpiSource: "read from the ACPI thermal zone",
     cpuNoSensor:
-      "This PC's firmware exposes no ACPI thermal zone, so Windows has no CPU temperature to read. Tools that always show one install a kernel-level driver to read the processor's registers directly: PC Tweaker doesn't, and would rather tell you that than show you a number it made up.",
+      "This PC's firmware exposes no ACPI thermal zone, so Windows has no CPU temperature to read. Tools that always show one install a kernel-level driver to read the processor's registers directly: Daltoon X doesn't, and would rather tell you that than show you a number it made up.",
     noGpuTool:
       "No NVIDIA card detected. AMD and Intel ship no equivalent query tool, so their temperatures can't be read without the vendor's own software.",
     thermalsUnavailable: "We can't read the sensors on this system.",
@@ -3257,7 +3445,7 @@ const en: Strings = {
     winUpdateLabel: "Windows Update",
     winUpdateButton: "Check Windows Update",
     winUpdateNote:
-      "This only checks Windows Update's own catalogue, not the specific drivers listed above: many vendors - onboard audio and chipset ones especially - never publish updates there, only on their own site. PC Tweaker does not download driver packages itself: there is no vendor API for what is current for your exact device, and installing the wrong display driver is one of the few mistakes that can leave you without a screen.",
+      "This only checks Windows Update's own catalogue, not the specific drivers listed above: many vendors - onboard audio and chipset ones especially - never publish updates there, only on their own site. Daltoon X does not download driver packages itself: there is no vendor API for what is current for your exact device, and installing the wrong display driver is one of the few mistakes that can leave you without a screen.",
     winUpdateOpened: "Windows Update opened.",
     winUpdateSearching: "Searching...",
     winUpdateTakesAWhile: "This can take a minute - it queries Microsoft's catalogue.",
@@ -3291,7 +3479,8 @@ const en: Strings = {
     photoFailed: "Could not use that image as a profile photo.",
     support: "Support",
     reportIssue: "Report an issue",
-    aboutBody: "PC Tweaker — system tweaks with automatic backup and rollback.",
+    supportUnavailable: "Daltoon X has no support channel yet. The previous link was not ours.",
+    aboutBody: "Daltoon X — system tweaks with automatic backup and rollback.",
     close: "Close",
   },
   auth: {
@@ -3299,9 +3488,11 @@ const en: Strings = {
     register: "Sign up",
     email: "Email",
     password: "Password",
+    confirmPassword: "Confirm password",
+    passwordHint: "At least 8 characters.",
     loginButton: "Log in",
-    rememberMe: "Keep me signed in",
     registerButton: "Create account",
+    checkingSession: "Checking your session...",
     working: "...",
     logout: "Log out",
     loggedInAs: "Logged in as {email}",
@@ -3309,6 +3500,9 @@ const en: Strings = {
     switchToRegister: "No account? Sign up",
     switchToLogin: "Already have an account? Log in",
     emailInvalid: "Enter a valid email address.",
+    emailRequired: "Enter your email address.",
+    passwordRequired: "Enter your password.",
+    passwordMismatch: "The two passwords do not match.",
     passwordTooShort: "Password must be at least 8 characters.",
     firstName: "First name",
     lastName: "Last name",
@@ -3348,7 +3542,7 @@ const en: Strings = {
     ecoqos_rules: {
       name: "Background app efficiency rules",
       description:
-        "Assign lower energy priority to chosen executables while PC Tweaker is open. Rules pause when the app is interactive; this is not a CPU percentage cap.",
+        "Assign lower energy priority to chosen executables while Daltoon X is open. Rules pause when the app is interactive; this is not a CPU percentage cap.",
     },
     limit_do_background_download: {
       name: "Windows background download limit",
@@ -3685,7 +3879,7 @@ const fr: Strings = {
     fewer: "Un café en moins",
     more: "Un café en plus",
   },
-  appName: "PC Tweaker",
+  appName: "Daltoon X",
   appliedCount: "{applied} sur {total} optimisations actives",
   headerNote:
     "Examinez chaque modification avant de l'appliquer. Les outils de restauration couvrent les paramètres pris en charge ; les opérations de nettoyage et de réparation ont des limites de récupération différentes.",
@@ -3779,6 +3973,14 @@ const fr: Strings = {
     installing: "Installation…",
     installed: "Installée",
     noVersion: "Aucune version publiée",
+    luaToolsDescription:
+      "Outils pour les dépôts Steam : depots, manifests et téléchargements. Daltoon X ne l'installe pas à votre place.",
+    luaToolsOpen: "Ouvrir LuaTools",
+    luaToolsNotInstalled: "LuaTools n'est pas installé",
+    luaToolsRuntimeMissing: "Installer .NET 8 Desktop Runtime",
+    luaToolsOfficialPage: "Aller sur le site de LuaTools",
+    luaToolsStarting: "Démarrage de LuaTools…",
+    luaToolsFailed: "Impossible de démarrer LuaTools",
     version: "Version {version}",
   },
   healthPanel: {
@@ -4093,6 +4295,8 @@ const fr: Strings = {
       "Toutes les versions à venir incluses, sans jamais renouveler",
       "Assistance prioritaire, assurée par le développeur",
     ],
+    notAvailableYet:
+      "Pro est attribué manuellement en 1.0.0 : il n'y a pas encore de bouton d'achat.",
   },
   toggle: { on: "Activé", off: "Désactivé" },
   driverBooster: {
@@ -4111,7 +4315,7 @@ const fr: Strings = {
       "{opened} pages ouvertes sur {total} : les autres restent sélectionnées, relancez pour les ouvrir.",
     allCurrent: "Aucun pilote ne montre son âge.",
     nothingActionable: "Aucun pilote vieillissant n’a de page constructeur à ouvrir.",
-    note: "PC Tweaker ne télécharge pas les pilotes lui-même : aucune API constructeur ne dit quelle version convient à votre appareil exact, et installer le mauvais pilote graphique est l’une des rares erreurs qui peut vous laisser sans écran. Ceci automatise la partie fastidieuse — trouver les pages — pas le choix. Pour les pilotes que Windows Update connaît vraiment, utilisez le bouton ci-dessus.",
+    note: "Daltoon X ne télécharge pas les pilotes lui-même : aucune API constructeur ne dit quelle version convient à votre appareil exact, et installer le mauvais pilote graphique est l’une des rares erreurs qui peut vous laisser sans écran. Ceci automatise la partie fastidieuse — trouver les pages — pas le choix. Pour les pilotes que Windows Update connaît vraiment, utilisez le bouton ci-dessus.",
   },
   secureDefrag: {
     title: "Défragmentation sécurisée",
@@ -4161,7 +4365,7 @@ const fr: Strings = {
       "À côté de la moyenne s’affiche DROP : la vitesse du pire pour cent des images, ce qu’ailleurs on appelle le « 1% low ». C’est le chiffre qui bouge quand le jeu saccade, alors que la moyenne reste haute et n’en dit rien. Plus DROP est proche de la moyenne, plus le jeu est fluide.",
     fpsStart: "Mesurer les FPS",
     fpsStop: "Arrêter la mesure",
-    fpsNeedsAdmin: "Mesurer les FPS demande de lancer PC Tweaker en tant qu’administrateur.",
+    fpsNeedsAdmin: "Mesurer les FPS demande de lancer Daltoon X en tant qu’administrateur.",
     fpsRunning:
       "Mesure en cours : les FPS apparaissent dans l’overlay dès qu’un jeu commence à dessiner.",
     show: "Afficher",
@@ -4174,6 +4378,31 @@ const fr: Strings = {
       "Verrouillé : les clics le traversent et atteignent le jeu. Déverrouillez-le pour le déplacer.",
     sizeCompact: "Compact",
     sizeNormal: "Normal",
+  },
+  hudLabels: {
+    fps: "FPS",
+    drop: "DROP",
+    cpu: "CPU",
+    gpu: "GPU",
+    temp: "Temp.",
+    ram: "RAM",
+    vram: "VRAM",
+  },
+  themeLabels: {
+    violet: "Violeta",
+    teal_depths: "Abismos turquesa",
+    amber_dusk: "Crepúsculo ámbar",
+    crimson_steel: "Acero carmesí",
+    ocean_blue: "Azul océano",
+    forest_emerald: "Esmeralda boscosa",
+    royal_gold: "Oro real",
+    slate_mono: "Pizarra monocroma",
+    indigo_night: "Noche índigo",
+    coral_sunset: "Atardecer coral",
+    rose_quartz: "Cuarzo rosa",
+    cyber_lime: "Lima cyber",
+    copper_forge: "Fragua de cobre",
+    magenta_pulse: "Pulso magenta",
   },
   updater: {
     title: "Mise à jour disponible : v{version}",
@@ -4340,7 +4569,7 @@ const fr: Strings = {
     autoOff: "Désactivé",
     autoEvery: "Toutes les {interval}",
     autoHint:
-      "Avec le nettoyage automatique, PC Tweaker libère la RAM tout seul à intervalle régulier tant que l'application reste ouverte.",
+      "Avec le nettoyage automatique, Daltoon X libère la RAM tout seul à intervalle régulier tant que l'application reste ouverte.",
     autoNext: "Prochain nettoyage à {time}",
     autoDue: "Nettoyage imminent...",
     autoLast: "Dernier à {time} : {amount} libérés",
@@ -4371,7 +4600,7 @@ const fr: Strings = {
   },
   paywall: {
     title: "Fonction Pro",
-    body: "« {feature} » fait partie de PC Tweaker Pro, avec Game Sessions, les préréglages gaming et toutes les fonctionnalités à venir.",
+    body: "« {feature} » fait partie de Daltoon X Pro, avec Game Sessions, les préréglages gaming et toutes les fonctionnalités à venir.",
     unlock: "Voir les offres et tarifs",
     notNow: "Pas maintenant",
     notConnectedToast:
@@ -4421,33 +4650,6 @@ const fr: Strings = {
     clearing: "Vidage...",
     runningWarning: "Fermez {browser} pour le vider.",
     clearedToast: "{browser} : {freed} libérés.",
-  },
-  tweakyDriverPromo: {
-    title: "Tweaky Driver",
-    description:
-      "Recherchez des pilotes auprès des sources prises en charge dans notre application dédiée. Vérifiez la compatibilité avant installation. Application distincte ; couverture variable.",
-    button: "Découvrir Tweaky Driver",
-    error: "Impossible d’ouvrir la page. Réessayez.",
-  },
-  redaxaPromo: {
-    title: "Redaxa",
-    description:
-      "Vous avez coupé télémétrie et pistage — mais que collez-vous dans les chats IA ? Redaxa intercepte données personnelles et identifiants avant qu'un prompt n'atteigne un modèle. Même famille, même règle : rien n'est conservé.",
-    button: "Essayer sur le web",
-  },
-  uninstallerPromo: {
-    title: "PC Tweaker Uninstaller",
-    description:
-      "Supprimez des programmes entiers en toute sécurité : point de restauration automatique, commande vérifiée, rapport honnête. De la même famille que PC Tweaker.",
-    button: "Télécharger",
-    confirmTitle: "Télécharger le désinstalleur ?",
-    confirmBody:
-      "PC Tweaker Uninstaller est une application distincte de la même suite, et elle se connecte avec le même compte que celle-ci. Le téléchargement récupère l'installeur (environ 4 Mo) directement depuis sa version GitHub, pour Windows 10 et 11 en 64 bits.",
-    confirmUnsigned:
-      "PC Tweaker 1.10.0 est signé numériquement par Aurelio Avila. Vérifiez l'éditeur et la signature dans les propriétés du fichier. SmartScreen peut encore afficher un avertissement ; les anciennes versions peuvent ne pas être signées.",
-    confirmDownload: "Télécharger",
-    confirmOpenPage: "Ouvrir plutôt la page",
-    cancel: "Annuler",
   },
   largeFiles: {
     title: "Trouver les gros fichiers",
@@ -4560,7 +4762,7 @@ const fr: Strings = {
     noTempSensor: "Cette carte n'expose aucun capteur de température.",
     cpuAcpiSource: "lue depuis la zone thermique ACPI",
     cpuNoSensor:
-      "Le micrologiciel de ce PC n'expose aucune zone thermique ACPI : Windows n'a donc aucune température de processeur à lire. Les outils qui en affichent toujours une installent un pilote noyau pour lire directement les registres du processeur. PC Tweaker ne le fait pas, et préfère vous le dire plutôt que d'inventer une valeur.",
+      "Le micrologiciel de ce PC n'expose aucune zone thermique ACPI : Windows n'a donc aucune température de processeur à lire. Les outils qui en affichent toujours une installent un pilote noyau pour lire directement les registres du processeur. Daltoon X ne le fait pas, et préfère vous le dire plutôt que d'inventer une valeur.",
     noGpuTool:
       "Aucune carte NVIDIA détectée. AMD et Intel ne fournissent pas d'outil équivalent, leurs températures sont donc illisibles sans le logiciel du fabricant.",
     thermalsUnavailable: "Impossible de lire les capteurs de ce système.",
@@ -4634,7 +4836,7 @@ const fr: Strings = {
     winUpdateLabel: "Windows Update",
     winUpdateButton: "Rechercher sur Windows Update",
     winUpdateNote:
-      "Ceci vérifie uniquement le catalogue de Windows Update, pas les pilotes précis listés ci-dessus : de nombreux fabricants - surtout pour l'audio et le chipset intégrés - ne publient jamais leurs mises à jour là, seulement sur leur propre site. PC Tweaker ne télécharge pas de paquets de pilotes lui-même : il n'existe aucune API constructeur indiquant la version correcte pour votre appareil précis, et installer le mauvais pilote graphique est l'une des rares erreurs qui peut vous laisser sans écran.",
+      "Ceci vérifie uniquement le catalogue de Windows Update, pas les pilotes précis listés ci-dessus : de nombreux fabricants - surtout pour l'audio et le chipset intégrés - ne publient jamais leurs mises à jour là, seulement sur leur propre site. Daltoon X ne télécharge pas de paquets de pilotes lui-même : il n'existe aucune API constructeur indiquant la version correcte pour votre appareil précis, et installer le mauvais pilote graphique est l'une des rares erreurs qui peut vous laisser sans écran.",
     winUpdateOpened: "Windows Update ouvert.",
     winUpdateSearching: "Recherche...",
     winUpdateTakesAWhile: "Cela peut prendre une minute : interrogation du catalogue Microsoft.",
@@ -4668,7 +4870,9 @@ const fr: Strings = {
     photoFailed: "Impossible d'utiliser cette image comme photo de profil.",
     support: "Assistance",
     reportIssue: "Signaler un problème",
-    aboutBody: "PC Tweaker — optimisations système avec sauvegarde et restauration automatiques.",
+    supportUnavailable:
+      "Daltoon X n'a pas encore de canal d'assistance. L'ancien lien n'était pas le nôtre.",
+    aboutBody: "Daltoon X — optimisations système avec sauvegarde et restauration automatiques.",
     close: "Fermer",
   },
   auth: {
@@ -4676,9 +4880,11 @@ const fr: Strings = {
     register: "Inscription",
     email: "E-mail",
     password: "Mot de passe",
+    confirmPassword: "Confirmer le mot de passe",
+    passwordHint: "Au moins 8 caractères.",
     loginButton: "Se connecter",
-    rememberMe: "Rester connecte sur ce PC",
     registerButton: "Créer un compte",
+    checkingSession: "Vérification de la session...",
     working: "...",
     logout: "Se déconnecter",
     loggedInAs: "Connecté en tant que {email}",
@@ -4687,6 +4893,9 @@ const fr: Strings = {
     switchToRegister: "Pas de compte ? Inscrivez-vous",
     switchToLogin: "Déjà un compte ? Connectez-vous",
     emailInvalid: "Saisissez une adresse e-mail valide.",
+    emailRequired: "Saisissez votre adresse e-mail.",
+    passwordRequired: "Saisissez votre mot de passe.",
+    passwordMismatch: "Les deux mots de passe ne correspondent pas.",
     passwordTooShort: "Le mot de passe doit contenir au moins 8 caractères.",
     firstName: "Prénom",
     lastName: "Nom",
@@ -4726,7 +4935,7 @@ const fr: Strings = {
     ecoqos_rules: {
       name: "Règles d'efficacité des apps en arrière-plan",
       description:
-        "Réduit la priorité énergétique des exécutables choisis tant que PC Tweaker est ouvert. Les règles se suspendent lorsque l'app devient interactive ; ce n'est pas un plafond CPU.",
+        "Réduit la priorité énergétique des exécutables choisis tant que Daltoon X est ouvert. Les règles se suspendent lorsque l'app devient interactive ; ce n'est pas un plafond CPU.",
     },
     limit_do_background_download: {
       name: "Limite des téléchargements Windows en arrière-plan",
@@ -5065,7 +5274,7 @@ const es: Strings = {
     fewer: "Un café menos",
     more: "Un café más",
   },
-  appName: "PC Tweaker",
+  appName: "Daltoon X",
   appliedCount: "{applied} de {total} ajustes activos",
   headerNote:
     "Revisa cada cambio antes de aplicarlo. Las herramientas de restauración cubren los ajustes compatibles; las operaciones de limpieza y reparación tienen distintos límites de recuperación.",
@@ -5159,6 +5368,14 @@ const es: Strings = {
     installing: "Instalando…",
     installed: "Instalada",
     noVersion: "Sin versión publicada",
+    luaToolsDescription:
+      "Herramientas para depósitos de Steam: depots, manifests y descargas. Daltoon X no las instala por ti.",
+    luaToolsOpen: "Abrir LuaTools",
+    luaToolsNotInstalled: "LuaTools no está instalado",
+    luaToolsRuntimeMissing: "Instalar .NET 8 Desktop Runtime",
+    luaToolsOfficialPage: "Ir al sitio de LuaTools",
+    luaToolsStarting: "Iniciando LuaTools…",
+    luaToolsFailed: "No se pudo iniciar LuaTools",
     version: "Versión {version}",
   },
   healthPanel: {
@@ -5472,6 +5689,7 @@ const es: Strings = {
       "Todas las versiones futuras incluidas, sin renovar nunca",
       "Soporte prioritario, respondido por el desarrollador",
     ],
+    notAvailableYet: "Pro se concede manualmente en la 1.0.0: todavía no hay botón de compra.",
   },
   toggle: { on: "Activado", off: "Desactivado" },
   driverBooster: {
@@ -5490,7 +5708,7 @@ const es: Strings = {
       "Abiertas {opened} de {total} páginas: las demás siguen seleccionadas, vuelve a ejecutarlo.",
     allCurrent: "Ningún controlador aparenta su edad.",
     nothingActionable: "Ningún controlador antiguo tiene una página del fabricante que abrir.",
-    note: "PC Tweaker no descarga paquetes de controladores por su cuenta: no existe una API del fabricante que diga cuál es la versión correcta para tu dispositivo exacto, e instalar el controlador de vídeo equivocado es uno de los pocos errores que puede dejarte sin pantalla. Esto automatiza la parte tediosa — encontrar las páginas — no la elección. Para los controladores que Windows Update sí conoce, usa el botón de arriba.",
+    note: "Daltoon X no descarga paquetes de controladores por su cuenta: no existe una API del fabricante que diga cuál es la versión correcta para tu dispositivo exacto, e instalar el controlador de vídeo equivocado es uno de los pocos errores que puede dejarte sin pantalla. Esto automatiza la parte tediosa — encontrar las páginas — no la elección. Para los controladores que Windows Update sí conoce, usa el botón de arriba.",
   },
   secureDefrag: {
     title: "Desfragmentación segura",
@@ -5540,7 +5758,7 @@ const es: Strings = {
       "Junto al promedio aparece DROP: la velocidad del uno por ciento peor de fotogramas, lo que en otros sitios llaman «1% low». Es la cifra que se mueve cuando el juego tironea, mientras el promedio sigue alto y no lo cuenta. Cuanto más cerca esté DROP del promedio, más fluido va el juego.",
     fpsStart: "Medir FPS",
     fpsStop: "Detener medición",
-    fpsNeedsAdmin: "Para medir los FPS hay que iniciar PC Tweaker como administrador.",
+    fpsNeedsAdmin: "Para medir los FPS hay que iniciar Daltoon X como administrador.",
     fpsRunning: "Midiendo: los FPS aparecen en el overlay en cuanto un juego empieza a dibujar.",
     show: "Mostrar",
     hide: "Ocultar",
@@ -5550,6 +5768,31 @@ const es: Strings = {
     lockedHint: "Bloqueada: los clics la atraviesan y llegan al juego. Desbloquéala para moverla.",
     sizeCompact: "Compacto",
     sizeNormal: "Normal",
+  },
+  hudLabels: {
+    fps: "FPS",
+    drop: "DROP",
+    cpu: "CPU",
+    gpu: "GPU",
+    temp: "Temp.",
+    ram: "RAM",
+    vram: "VRAM",
+  },
+  themeLabels: {
+    violet: "Violet",
+    teal_depths: "Abysses turquoise",
+    amber_dusk: "Crépuscule d'ambre",
+    crimson_steel: "Acier cramoisi",
+    ocean_blue: "Bleu océan",
+    forest_emerald: "Émeraude forestier",
+    royal_gold: "Or royal",
+    slate_mono: "Ardoise monochrome",
+    indigo_night: "Nuit indigo",
+    coral_sunset: "Coucher de soleil corail",
+    rose_quartz: "Quartz rose",
+    cyber_lime: "Lime cyber",
+    copper_forge: "Forge de cuivre",
+    magenta_pulse: "Pulsation magenta",
   },
   updater: {
     title: "Actualización disponible: v{version}",
@@ -5714,7 +5957,7 @@ const es: Strings = {
     autoOff: "Desactivada",
     autoEvery: "Cada {interval}",
     autoHint:
-      "Con la limpieza automática activada, PC Tweaker libera la RAM por sí solo a intervalos regulares mientras la app siga abierta.",
+      "Con la limpieza automática activada, Daltoon X libera la RAM por sí solo a intervalos regulares mientras la app siga abierta.",
     autoNext: "Próxima limpieza a las {time}",
     autoDue: "Limpieza inminente...",
     autoLast: "Última a las {time}: {amount} liberados",
@@ -5745,7 +5988,7 @@ const es: Strings = {
   },
   paywall: {
     title: "Función Pro",
-    body: '"{feature}" forma parte de PC Tweaker Pro, junto a Game Sessions, los presets de gaming y todas las funciones futuras.',
+    body: '"{feature}" forma parte de Daltoon X Pro, junto a Game Sessions, los presets de gaming y todas las funciones futuras.',
     unlock: "Ver planes y precios",
     notNow: "Ahora no",
     notConnectedToast: "El pago Pro todavía no está conectado en esta versión de desarrollo.",
@@ -5794,33 +6037,6 @@ const es: Strings = {
     clearing: "Vaciando...",
     runningWarning: "Cierra {browser} para poder vaciarlo.",
     clearedToast: "{browser}: {freed} liberados.",
-  },
-  tweakyDriverPromo: {
-    title: "Tweaky Driver",
-    description:
-      "Busca paquetes de controladores de fuentes compatibles en nuestra aplicación dedicada. Revisa la compatibilidad antes de instalar. Aplicación independiente; cobertura variable.",
-    button: "Explorar Tweaky Driver",
-    error: "No se pudo abrir la página. Inténtalo de nuevo.",
-  },
-  redaxaPromo: {
-    title: "Redaxa",
-    description:
-      "Has cortado telemetría y rastreo — pero ¿qué pegas en los chats de IA? Redaxa intercepta datos personales y credenciales antes de que un prompt llegue a cualquier modelo. Misma familia, misma regla: nada se guarda.",
-    button: "Pruébalo en la web",
-  },
-  uninstallerPromo: {
-    title: "PC Tweaker Uninstaller",
-    description:
-      "Elimina programas enteros de forma segura: punto de restauracion automatico, comando verificado, informe honesto. De la misma familia que PC Tweaker.",
-    button: "Descargar",
-    confirmTitle: "¿Descargar el desinstalador?",
-    confirmBody:
-      "PC Tweaker Uninstaller es una aplicación aparte de la misma suite y entra con la misma cuenta que esta. La descarga toma el instalador (unos 4 MB) directamente de su versión en GitHub, para Windows 10 y 11 de 64 bits.",
-    confirmUnsigned:
-      "PC Tweaker 1.10.0 está firmado digitalmente por Aurelio Avila. Comprueba el editor y la firma en las propiedades del archivo. SmartScreen aún puede mostrar avisos; las versiones anteriores pueden no estar firmadas.",
-    confirmDownload: "Descargar",
-    confirmOpenPage: "Abrir la página en su lugar",
-    cancel: "Cancelar",
   },
   largeFiles: {
     title: "Buscar archivos grandes",
@@ -5932,7 +6148,7 @@ const es: Strings = {
     noTempSensor: "Esta tarjeta no expone ningún sensor de temperatura.",
     cpuAcpiSource: "leída de la zona térmica ACPI",
     cpuNoSensor:
-      "El firmware de este PC no expone una zona térmica ACPI, así que Windows no tiene ninguna temperatura de CPU que leer. Las herramientas que siempre muestran una instalan un controlador a nivel de kernel para leer los registros del procesador: PC Tweaker no lo hace, y prefiere decírtelo antes que mostrarte un valor inventado.",
+      "El firmware de este PC no expone una zona térmica ACPI, así que Windows no tiene ninguna temperatura de CPU que leer. Las herramientas que siempre muestran una instalan un controlador a nivel de kernel para leer los registros del procesador: Daltoon X no lo hace, y prefiere decírtelo antes que mostrarte un valor inventado.",
     noGpuTool:
       "No se detectó ninguna tarjeta NVIDIA. AMD e Intel no ofrecen una herramienta equivalente, por lo que sus temperaturas no se pueden leer sin el software del fabricante.",
     thermalsUnavailable: "No podemos leer los sensores de este sistema.",
@@ -6006,7 +6222,7 @@ const es: Strings = {
     winUpdateLabel: "Windows Update",
     winUpdateButton: "Buscar en Windows Update",
     winUpdateNote:
-      "Esto solo revisa el catálogo propio de Windows Update, no los controladores concretos listados arriba: muchos fabricantes -sobre todo de audio y chipset integrados- nunca publican sus actualizaciones ahí, solo en su propio sitio. PC Tweaker no descarga paquetes de controladores por su cuenta: no existe una API del fabricante que diga cuál es la versión correcta para tu dispositivo exacto, e instalar el controlador de vídeo equivocado es uno de los pocos errores que puede dejarte sin pantalla.",
+      "Esto solo revisa el catálogo propio de Windows Update, no los controladores concretos listados arriba: muchos fabricantes -sobre todo de audio y chipset integrados- nunca publican sus actualizaciones ahí, solo en su propio sitio. Daltoon X no descarga paquetes de controladores por su cuenta: no existe una API del fabricante que diga cuál es la versión correcta para tu dispositivo exacto, e instalar el controlador de vídeo equivocado es uno de los pocos errores que puede dejarte sin pantalla.",
     winUpdateOpened: "Windows Update abierto.",
     winUpdateSearching: "Buscando...",
     winUpdateTakesAWhile: "Puede tardar un minuto: consulta el catálogo de Microsoft.",
@@ -6040,8 +6256,9 @@ const es: Strings = {
     photoFailed: "No se pudo usar esa imagen como foto de perfil.",
     support: "Soporte",
     reportIssue: "Notificar un problema",
-    aboutBody:
-      "PC Tweaker — ajustes del sistema con copia de seguridad y restauración automáticas.",
+    supportUnavailable:
+      "Daltoon X todavía no tiene canal de soporte. El enlace anterior no era nuestro.",
+    aboutBody: "Daltoon X — ajustes del sistema con copia de seguridad y restauración automáticas.",
     close: "Cerrar",
   },
   auth: {
@@ -6049,9 +6266,11 @@ const es: Strings = {
     register: "Registrarse",
     email: "Correo electrónico",
     password: "Contraseña",
+    confirmPassword: "Confirmar contraseña",
+    passwordHint: "Al menos 8 caracteres.",
     loginButton: "Iniciar sesión",
-    rememberMe: "Mantener la sesión iniciada",
     registerButton: "Crear cuenta",
+    checkingSession: "Comprobando tu sesión...",
     working: "...",
     logout: "Cerrar sesión",
     loggedInAs: "Sesión iniciada como {email}",
@@ -6060,6 +6279,9 @@ const es: Strings = {
     switchToRegister: "¿No tienes cuenta? Regístrate",
     switchToLogin: "¿Ya tienes cuenta? Inicia sesión",
     emailInvalid: "Introduce un correo electrónico válido.",
+    emailRequired: "Introduce tu correo electrónico.",
+    passwordRequired: "Introduce tu contraseña.",
+    passwordMismatch: "Las dos contraseñas no coinciden.",
     passwordTooShort: "La contraseña debe tener al menos 8 caracteres.",
     firstName: "Nombre",
     lastName: "Apellido",
@@ -6100,7 +6322,7 @@ const es: Strings = {
     ecoqos_rules: {
       name: "Reglas de eficiencia para apps en segundo plano",
       description:
-        "Asigna menor prioridad energética a ejecutables elegidos mientras PC Tweaker está abierto. Las reglas se pausan cuando la app es interactiva; no es un límite porcentual de CPU.",
+        "Asigna menor prioridad energética a ejecutables elegidos mientras Daltoon X está abierto. Las reglas se pausan cuando la app es interactiva; no es un límite porcentual de CPU.",
     },
     limit_do_background_download: {
       name: "Límite de descargas de Windows en segundo plano",
@@ -6438,7 +6660,7 @@ const de: Strings = {
     fewer: "Ein Kaffee weniger",
     more: "Ein Kaffee mehr",
   },
-  appName: "PC Tweaker",
+  appName: "Daltoon X",
   appliedCount: "{applied} von {total} Optimierungen aktiv",
   headerNote:
     "Prüfe jede Änderung vor dem Anwenden. Die Wiederherstellung unterstützt bestimmte Einstellungen; für Bereinigungs- und Reparaturvorgänge gelten andere Grenzen.",
@@ -6534,6 +6756,14 @@ const de: Strings = {
     installing: "Wird installiert…",
     installed: "Installiert",
     noVersion: "Keine veröffentlichte Version",
+    luaToolsDescription:
+      "Werkzeuge für Steam-Depots — Depots, Manifeste und Downloads. Daltoon X installiert sie nicht für dich.",
+    luaToolsOpen: "LuaTools öffnen",
+    luaToolsNotInstalled: "LuaTools ist nicht installiert",
+    luaToolsRuntimeMissing: ".NET 8 Desktop Runtime installieren",
+    luaToolsOfficialPage: "Zur LuaTools-Website",
+    luaToolsStarting: "LuaTools wird gestartet…",
+    luaToolsFailed: "LuaTools konnte nicht gestartet werden",
     version: "Version {version}",
   },
   healthPanel: {
@@ -6848,6 +7078,7 @@ const de: Strings = {
       "Jede künftige Version inklusive, ohne jede Verlängerung",
       "Bevorzugter Support, beantwortet vom Entwickler",
     ],
+    notAvailableYet: "Pro wird in 1.0.0 von Hand vergeben — es gibt noch keine Kauf-Schaltfläche.",
   },
   toggle: { on: "Ein", off: "Aus" },
   driverBooster: {
@@ -6866,7 +7097,7 @@ const de: Strings = {
       "{opened} von {total} Seiten geöffnet: der Rest bleibt ausgewählt, einfach erneut ausführen.",
     allCurrent: "Kein Treiber zeigt sein Alter.",
     nothingActionable: "Kein alternder Treiber hat eine Herstellerseite zum Öffnen.",
-    note: "PC Tweaker lädt Treiberpakete nicht selbst herunter: es gibt keine Hersteller-API, die sagt, welche Version für genau dein Gerät richtig ist, und den falschen Grafiktreiber zu installieren ist einer der wenigen Fehler, der dich ohne Bildschirm zurücklassen kann. Das hier automatisiert den mühsamen Teil — die Seiten zu finden — nicht die Entscheidung. Für Treiber, die Windows Update wirklich kennt, nimm die Schaltfläche oben.",
+    note: "Daltoon X lädt Treiberpakete nicht selbst herunter: es gibt keine Hersteller-API, die sagt, welche Version für genau dein Gerät richtig ist, und den falschen Grafiktreiber zu installieren ist einer der wenigen Fehler, der dich ohne Bildschirm zurücklassen kann. Das hier automatisiert den mühsamen Teil — die Seiten zu finden — nicht die Entscheidung. Für Treiber, die Windows Update wirklich kennt, nimm die Schaltfläche oben.",
   },
   secureDefrag: {
     title: "Sichere Defragmentierung",
@@ -6916,7 +7147,7 @@ const de: Strings = {
       "Neben dem Durchschnitt steht DROP: die Rate des schlechtesten Prozents der Bilder, andernorts 1% Low genannt. Das ist die Zahl, die sich bewegt, wenn ein Spiel stockt, während der Durchschnitt hoch bleibt und nichts davon verrät. Je näher DROP am Durchschnitt liegt, desto flüssiger läuft es.",
     fpsStart: "FPS messen",
     fpsStop: "Messung beenden",
-    fpsNeedsAdmin: "Zum Messen der Bildrate muss PC Tweaker als Administrator gestartet werden.",
+    fpsNeedsAdmin: "Zum Messen der Bildrate muss Daltoon X als Administrator gestartet werden.",
     fpsRunning:
       "Messung läuft: Die Bildrate erscheint im Overlay, sobald ein Spiel zu zeichnen beginnt.",
     show: "Anzeigen",
@@ -6928,6 +7159,31 @@ const de: Strings = {
     lockedHint: "Gesperrt: Klicks gehen hindurch zum Spiel. Zum Verschieben entsperren.",
     sizeCompact: "Kompakt",
     sizeNormal: "Normal",
+  },
+  hudLabels: {
+    fps: "FPS",
+    drop: "DROP",
+    cpu: "CPU",
+    gpu: "GPU",
+    temp: "Temp.",
+    ram: "RAM",
+    vram: "VRAM",
+  },
+  themeLabels: {
+    violet: "Viola",
+    teal_depths: "Abissi turchese",
+    amber_dusk: "Crepuscolo d'ambra",
+    crimson_steel: "Acciaio cremisi",
+    ocean_blue: "Blu oceano",
+    forest_emerald: "Smeraldo boschivo",
+    royal_gold: "Oro reale",
+    slate_mono: "Ardesia monocroma",
+    indigo_night: "Notte indaco",
+    coral_sunset: "Tramonto corallo",
+    rose_quartz: "Quarzo rosa",
+    cyber_lime: "Lime cyber",
+    copper_forge: "Fucina di rame",
+    magenta_pulse: "Pulsazione magenta",
   },
   updater: {
     title: "Update verfügbar: v{version}",
@@ -7093,7 +7349,7 @@ const de: Strings = {
     autoOff: "Aus",
     autoEvery: "Alle {interval}",
     autoHint:
-      "Bei aktiver automatischer Bereinigung gibt PC Tweaker den RAM selbstständig in regelmäßigen Abständen frei, solange die App geöffnet bleibt.",
+      "Bei aktiver automatischer Bereinigung gibt Daltoon X den RAM selbstständig in regelmäßigen Abständen frei, solange die App geöffnet bleibt.",
     autoNext: "Nächste Bereinigung um {time}",
     autoDue: "Bereinigung steht an...",
     autoLast: "Zuletzt um {time}: {amount} freigegeben",
@@ -7124,7 +7380,7 @@ const de: Strings = {
   },
   paywall: {
     title: "Pro-Funktion",
-    body: '„{feature}" ist Teil von PC Tweaker Pro — zusammen mit Game Sessions, den Gaming-Presets und jeder künftigen Funktion.',
+    body: '„{feature}" ist Teil von Daltoon X Pro — zusammen mit Game Sessions, den Gaming-Presets und jeder künftigen Funktion.',
     unlock: "Tarife & Preise ansehen",
     notNow: "Nicht jetzt",
     notConnectedToast: "Die Pro-Zahlung ist in dieser Entwicklungsversion noch nicht angebunden.",
@@ -7173,33 +7429,6 @@ const de: Strings = {
     clearing: "Wird geleert...",
     runningWarning: "Schließe {browser}, um ihn zu leeren.",
     clearedToast: "{browser}: {freed} freigegeben.",
-  },
-  tweakyDriverPromo: {
-    title: "Tweaky Driver",
-    description:
-      "Finde Treiberpakete aus unterstützten Quellen in unserer separaten App. Prüfe vor der Installation die Kompatibilität. Die Abdeckung variiert.",
-    button: "Tweaky Driver entdecken",
-    error: "Die Seite konnte nicht geöffnet werden. Bitte erneut versuchen.",
-  },
-  redaxaPromo: {
-    title: "Redaxa",
-    description:
-      "Telemetrie und Tracking sind aus — aber was fügst du in KI-Chats ein? Redaxa fängt persönliche Daten und Zugangsdaten ab, bevor ein Prompt irgendein Modell erreicht. Gleiche Familie, gleiche Regel: nichts wird gespeichert.",
-    button: "Im Web ausprobieren",
-  },
-  uninstallerPromo: {
-    title: "PC Tweaker Uninstaller",
-    description:
-      "Entferne ganze Programme sicher: automatischer Wiederherstellungspunkt, gepruefter Befehl, ehrlicher Bericht. Aus derselben Familie wie PC Tweaker.",
-    button: "Herunterladen",
-    confirmTitle: "Uninstaller herunterladen?",
-    confirmBody:
-      "PC Tweaker Uninstaller ist eine eigene App derselben Suite und meldet sich mit demselben Konto an wie diese. Der Download holt das Installationsprogramm (rund 4 MB) direkt aus seinem GitHub-Release, für Windows 10 und 11 in 64 Bit.",
-    confirmUnsigned:
-      "PC Tweaker 1.10.0 ist von Aurelio Avila digital signiert. Prüfe Herausgeber und Signatur in den Dateieigenschaften. SmartScreen kann weiterhin warnen; ältere Versionen können unsigniert sein.",
-    confirmDownload: "Herunterladen",
-    confirmOpenPage: "Stattdessen die Seite öffnen",
-    cancel: "Abbrechen",
   },
   largeFiles: {
     title: "Grosse Dateien finden",
@@ -7312,7 +7541,7 @@ const de: Strings = {
     noTempSensor: "Diese Karte stellt keinen Temperatursensor bereit.",
     cpuAcpiSource: "aus der ACPI-Thermalzone gelesen",
     cpuNoSensor:
-      "Die Firmware dieses PCs stellt keine ACPI-Thermalzone bereit, daher hat Windows keine CPU-Temperatur zum Auslesen. Programme, die immer eine anzeigen, installieren einen Kernel-Treiber, um die Prozessorregister direkt zu lesen: PC Tweaker tut das nicht und sagt es Ihnen lieber, als einen erfundenen Wert zu zeigen.",
+      "Die Firmware dieses PCs stellt keine ACPI-Thermalzone bereit, daher hat Windows keine CPU-Temperatur zum Auslesen. Programme, die immer eine anzeigen, installieren einen Kernel-Treiber, um die Prozessorregister direkt zu lesen: Daltoon X tut das nicht und sagt es Ihnen lieber, als einen erfundenen Wert zu zeigen.",
     noGpuTool:
       "Keine NVIDIA-Karte erkannt. AMD und Intel liefern kein vergleichbares Abfragewerkzeug, ihre Temperaturen sind daher ohne Herstellersoftware nicht auslesbar.",
     thermalsUnavailable: "Wir können die Sensoren dieses Systems nicht auslesen.",
@@ -7387,7 +7616,7 @@ const de: Strings = {
     winUpdateLabel: "Windows Update",
     winUpdateButton: "In Windows Update suchen",
     winUpdateNote:
-      "Dies prüft nur den eigenen Katalog von Windows Update, nicht die oben aufgeführten einzelnen Treiber: Viele Hersteller - besonders bei Onboard-Audio und Chipsatz - veröffentlichen ihre Updates dort nie, nur auf der eigenen Website. PC Tweaker lädt keine Treiberpakete selbst herunter: Es gibt keine Hersteller-API dafür, was für genau Ihr Gerät aktuell ist, und den falschen Grafiktreiber zu installieren ist einer der wenigen Fehler, die Sie ohne Bild zurücklassen können.",
+      "Dies prüft nur den eigenen Katalog von Windows Update, nicht die oben aufgeführten einzelnen Treiber: Viele Hersteller - besonders bei Onboard-Audio und Chipsatz - veröffentlichen ihre Updates dort nie, nur auf der eigenen Website. Daltoon X lädt keine Treiberpakete selbst herunter: Es gibt keine Hersteller-API dafür, was für genau Ihr Gerät aktuell ist, und den falschen Grafiktreiber zu installieren ist einer der wenigen Fehler, die Sie ohne Bild zurücklassen können.",
     winUpdateOpened: "Windows Update geöffnet.",
     winUpdateSearching: "Wird gesucht...",
     winUpdateTakesAWhile: "Das kann eine Minute dauern - der Microsoft-Katalog wird abgefragt.",
@@ -7421,8 +7650,9 @@ const de: Strings = {
     photoFailed: "Dieses Bild konnte nicht als Profilfoto verwendet werden.",
     support: "Support",
     reportIssue: "Ein Problem melden",
-    aboutBody:
-      "PC Tweaker — Systemoptimierungen mit automatischer Sicherung und Wiederherstellung.",
+    supportUnavailable:
+      "Daltoon X hat noch keinen Support-Kanal. Der frühere Link gehörte nicht uns.",
+    aboutBody: "Daltoon X — Systemoptimierungen mit automatischer Sicherung und Wiederherstellung.",
     close: "Schließen",
   },
   auth: {
@@ -7430,9 +7660,11 @@ const de: Strings = {
     register: "Registrieren",
     email: "E-Mail",
     password: "Passwort",
+    confirmPassword: "Passwort bestätigen",
+    passwordHint: "Mindestens 8 Zeichen.",
     loginButton: "Anmelden",
-    rememberMe: "Angemeldet bleiben",
     registerButton: "Konto erstellen",
+    checkingSession: "Sitzung wird geprüft...",
     working: "...",
     logout: "Abmelden",
     loggedInAs: "Angemeldet als {email}",
@@ -7441,6 +7673,9 @@ const de: Strings = {
     switchToRegister: "Noch kein Konto? Registrieren",
     switchToLogin: "Schon ein Konto? Anmelden",
     emailInvalid: "Bitte eine gültige E-Mail-Adresse eingeben.",
+    emailRequired: "Bitte deine E-Mail-Adresse eingeben.",
+    passwordRequired: "Bitte dein Passwort eingeben.",
+    passwordMismatch: "Die beiden Passwörter stimmen nicht überein.",
     passwordTooShort: "Das Passwort muss mindestens 8 Zeichen lang sein.",
     firstName: "Vorname",
     lastName: "Nachname",
@@ -7481,7 +7716,7 @@ const de: Strings = {
     ecoqos_rules: {
       name: "Effizienzregeln für Hintergrund-Apps",
       description:
-        "Gibt ausgewählten Programmen eine niedrigere Energiepriorität, solange PC Tweaker geöffnet ist. Bei interaktiver Nutzung pausieren die Regeln; sie sind keine CPU-Prozentgrenze.",
+        "Gibt ausgewählten Programmen eine niedrigere Energiepriorität, solange Daltoon X geöffnet ist. Bei interaktiver Nutzung pausieren die Regeln; sie sind keine CPU-Prozentgrenze.",
     },
     limit_do_background_download: {
       name: "Limit für Windows-Hintergrunddownloads",
@@ -7820,7 +8055,7 @@ const pt: Strings = {
     fewer: "Um café menos",
     more: "Um café mais",
   },
-  appName: "PC Tweaker",
+  appName: "Daltoon X",
   appliedCount: "{applied} de {total} ajustes ativos",
   headerNote:
     "Revise cada alteração antes de aplicá-la. As ferramentas de restauração cobrem as configurações compatíveis; as operações de limpeza e reparo têm limites de recuperação diferentes.",
@@ -7914,6 +8149,14 @@ const pt: Strings = {
     installing: "A instalar…",
     installed: "Instalada",
     noVersion: "Sem versão publicada",
+    luaToolsDescription:
+      "Ferramentas para depots Steam: depots, manifests e transferências. O Daltoon X não as instala por si.",
+    luaToolsOpen: "Abrir o LuaTools",
+    luaToolsNotInstalled: "O LuaTools não está instalado",
+    luaToolsRuntimeMissing: "Instalar o .NET 8 Desktop Runtime",
+    luaToolsOfficialPage: "Ir para o site do LuaTools",
+    luaToolsStarting: "A iniciar o LuaTools…",
+    luaToolsFailed: "Não foi possível iniciar o LuaTools",
     version: "Versão {version}",
   },
   healthPanel: {
@@ -8231,6 +8474,7 @@ const pt: Strings = {
       "Todas as versões futuras incluídas, sem nunca renovar",
       "Apoio prioritário, respondido pelo programador",
     ],
+    notAvailableYet: "O Pro é atribuído manualmente na 1.0.0 — ainda não há botão de compra.",
   },
   toggle: { on: "Ativado", off: "Desativado" },
   driverBooster: {
@@ -8249,7 +8493,7 @@ const pt: Strings = {
       "Abertas {opened} de {total} páginas: as restantes ficam selecionadas, executa de novo.",
     allCurrent: "Nenhum driver aparenta a idade.",
     nothingActionable: "Nenhum driver antigo tem uma página do fabricante para abrir.",
-    note: "O PC Tweaker não transfere pacotes de drivers sozinho: não existe uma API do fabricante que diga qual a versão certa para o teu dispositivo exato, e instalar o driver de vídeo errado é um dos poucos erros capazes de te deixar sem ecrã. Isto automatiza a parte aborrecida — encontrar as páginas — não a escolha. Para os drivers que o Windows Update conhece mesmo, usa o botão acima.",
+    note: "O Daltoon X não transfere pacotes de drivers sozinho: não existe uma API do fabricante que diga qual a versão certa para o teu dispositivo exato, e instalar o driver de vídeo errado é um dos poucos erros capazes de te deixar sem ecrã. Isto automatiza a parte aborrecida — encontrar as páginas — não a escolha. Para os drivers que o Windows Update conhece mesmo, usa o botão acima.",
   },
   secureDefrag: {
     title: "Desfragmentação segura",
@@ -8299,7 +8543,7 @@ const pt: Strings = {
       "Ao lado da média aparece DROP: a velocidade do um por cento de fotogramas piores, aquilo a que noutros sítios chamam «1% low». É o número que se mexe quando o jogo engasga, enquanto a média fica alta e não o diz. Quanto mais perto DROP estiver da média, mais fluido está o jogo.",
     fpsStart: "Medir FPS",
     fpsStop: "Parar medição",
-    fpsNeedsAdmin: "Para medir os FPS é preciso iniciar o PC Tweaker como administrador.",
+    fpsNeedsAdmin: "Para medir os FPS é preciso iniciar o Daltoon X como administrador.",
     fpsRunning: "A medir: os FPS aparecem no overlay assim que um jogo começar a desenhar.",
     show: "Mostrar",
     hide: "Ocultar",
@@ -8309,6 +8553,31 @@ const pt: Strings = {
     lockedHint: "Bloqueada: os cliques a atravessam e chegam ao jogo. Desbloqueie para movê-la.",
     sizeCompact: "Compacto",
     sizeNormal: "Normal",
+  },
+  hudLabels: {
+    fps: "FPS",
+    drop: "DROP",
+    cpu: "CPU",
+    gpu: "GPU",
+    temp: "Temp.",
+    ram: "RAM",
+    vram: "VRAM",
+  },
+  themeLabels: {
+    violet: "Violet",
+    teal_depths: "Teal Depths",
+    amber_dusk: "Amber Dusk",
+    crimson_steel: "Crimson Steel",
+    ocean_blue: "Ocean Blue",
+    forest_emerald: "Forest Emerald",
+    royal_gold: "Royal Gold",
+    slate_mono: "Slate Mono",
+    indigo_night: "Indigo Night",
+    coral_sunset: "Coral Sunset",
+    rose_quartz: "Rose Quartz",
+    cyber_lime: "Cyber Lime",
+    copper_forge: "Copper Forge",
+    magenta_pulse: "Magenta Pulse",
   },
   updater: {
     title: "Atualização disponível: v{version}",
@@ -8472,7 +8741,7 @@ const pt: Strings = {
     autoOff: "Desativada",
     autoEvery: "A cada {interval}",
     autoHint:
-      "Com a limpeza automática ativada, o PC Tweaker libera RAM sozinho em intervalos regulares enquanto o app estiver aberto.",
+      "Com a limpeza automática ativada, o Daltoon X libera RAM sozinho em intervalos regulares enquanto o app estiver aberto.",
     autoNext: "Próxima limpeza às {time}",
     autoDue: "Limpeza prestes a ocorrer...",
     autoLast: "Última às {time}: {amount} liberados",
@@ -8503,7 +8772,7 @@ const pt: Strings = {
   },
   paywall: {
     title: "Recurso Pro",
-    body: '"{feature}" faz parte do PC Tweaker Pro, junto com Sessões de jogo, os presets de jogos e todo recurso futuro.',
+    body: '"{feature}" faz parte do Daltoon X Pro, junto com Sessões de jogo, os presets de jogos e todo recurso futuro.',
     unlock: "Ver planos e preços",
     notNow: "Agora não",
     notConnectedToast:
@@ -8553,33 +8822,6 @@ const pt: Strings = {
     clearing: "Limpando...",
     runningWarning: "Feche o {browser} para limpar.",
     clearedToast: "{browser}: {freed} liberados.",
-  },
-  tweakyDriverPromo: {
-    title: "Tweaky Driver",
-    description:
-      "Encontre pacotes de drivers de fontes compatíveis na nossa aplicação dedicada. Verifique a compatibilidade antes de instalar. Aplicação separada; cobertura variável.",
-    button: "Explorar Tweaky Driver",
-    error: "Não foi possível abrir a página. Tente novamente.",
-  },
-  redaxaPromo: {
-    title: "Redaxa",
-    description:
-      "Você já cortou telemetria e rastreamento — mas o que cola em chats de IA? O Redaxa detecta dados pessoais e credenciais antes que um prompt chegue a qualquer modelo. Mesma família, mesma regra: nada é armazenado.",
-    button: "Experimente na web",
-  },
-  uninstallerPromo: {
-    title: "PC Tweaker Uninstaller",
-    description:
-      "Remova programas inteiros com segurança: ponto de restauração automático, comando verificado, relatório honesto. Da mesma família do PC Tweaker.",
-    button: "Baixar",
-    confirmTitle: "Baixar o desinstalador?",
-    confirmBody:
-      "O PC Tweaker Uninstaller é um aplicativo separado da mesma suíte e entra com a mesma conta que este. O download pega o instalador (cerca de 4 MB) direto da versão no GitHub, para Windows 10 e 11 de 64 bits.",
-    confirmUnsigned:
-      "O PC Tweaker 1.10.0 é assinado digitalmente por Aurelio Avila. Verifique o editor e a assinatura nas propriedades do ficheiro. O SmartScreen ainda pode apresentar avisos; as versões anteriores podem não estar assinadas.",
-    confirmDownload: "Baixar",
-    confirmOpenPage: "Abrir a página",
-    cancel: "Cancelar",
   },
   largeFiles: {
     title: "Encontrar arquivos grandes",
@@ -8691,7 +8933,7 @@ const pt: Strings = {
     noTempSensor: "Esta placa não expõe sensor de temperatura.",
     cpuAcpiSource: "lido da zona térmica ACPI",
     cpuNoSensor:
-      "O firmware deste PC não expõe uma zona térmica ACPI, então o Windows não tem temperatura de CPU para ler. Ferramentas que sempre mostram uma instalam um driver em nível de kernel para ler os registradores do processador diretamente: o PC Tweaker não faz isso, e prefere dizer isso a mostrar um número inventado.",
+      "O firmware deste PC não expõe uma zona térmica ACPI, então o Windows não tem temperatura de CPU para ler. Ferramentas que sempre mostram uma instalam um driver em nível de kernel para ler os registradores do processador diretamente: o Daltoon X não faz isso, e prefere dizer isso a mostrar um número inventado.",
     noGpuTool:
       "Nenhuma placa NVIDIA detectada. AMD e Intel não oferecem uma ferramenta de consulta equivalente, então suas temperaturas não podem ser lidas sem o software do próprio fabricante.",
     thermalsUnavailable: "Não conseguimos ler os sensores neste sistema.",
@@ -8765,7 +9007,7 @@ const pt: Strings = {
     winUpdateLabel: "Windows Update",
     winUpdateButton: "Verificar no Windows Update",
     winUpdateNote:
-      "Isto verifica apenas o próprio catálogo do Windows Update, não os drivers específicos listados acima: muitos fabricantes - de áudio e chipset integrados especialmente - nunca publicam suas atualizações ali, só no próprio site. O PC Tweaker não baixa pacotes de driver por conta própria: não existe uma API de fabricante para o que é atual para o seu dispositivo exato, e instalar o driver de vídeo errado é um dos poucos erros capazes de deixar você sem tela.",
+      "Isto verifica apenas o próprio catálogo do Windows Update, não os drivers específicos listados acima: muitos fabricantes - de áudio e chipset integrados especialmente - nunca publicam suas atualizações ali, só no próprio site. O Daltoon X não baixa pacotes de driver por conta própria: não existe uma API de fabricante para o que é atual para o seu dispositivo exato, e instalar o driver de vídeo errado é um dos poucos erros capazes de deixar você sem tela.",
     winUpdateOpened: "Windows Update aberto.",
     winUpdateSearching: "Buscando...",
     winUpdateTakesAWhile: "Pode demorar um minuto: consulta o catálogo da Microsoft.",
@@ -8799,7 +9041,9 @@ const pt: Strings = {
     photoFailed: "Não foi possível usar essa imagem como foto de perfil.",
     support: "Suporte",
     reportIssue: "Relatar um problema",
-    aboutBody: "PC Tweaker — ajustes de sistema com backup e reversão automáticos.",
+    supportUnavailable:
+      "O Daltoon X ainda não tem canal de suporte. O link anterior não era nosso.",
+    aboutBody: "Daltoon X — ajustes de sistema com backup e reversão automáticos.",
     close: "Fechar",
   },
   auth: {
@@ -8807,9 +9051,11 @@ const pt: Strings = {
     register: "Cadastrar-se",
     email: "E-mail",
     password: "Senha",
+    confirmPassword: "Confirmar senha",
+    passwordHint: "Pelo menos 8 caracteres.",
     loginButton: "Entrar",
-    rememberMe: "Manter conectado",
     registerButton: "Criar conta",
+    checkingSession: "Verificando sua sessão...",
     working: "...",
     logout: "Sair",
     loggedInAs: "Conectado como {email}",
@@ -8818,6 +9064,9 @@ const pt: Strings = {
     switchToRegister: "Não tem conta? Cadastre-se",
     switchToLogin: "Já tem uma conta? Entre",
     emailInvalid: "Digite um endereço de e-mail válido.",
+    emailRequired: "Digite seu endereço de e-mail.",
+    passwordRequired: "Digite sua senha.",
+    passwordMismatch: "As duas senhas não coincidem.",
     passwordTooShort: "A senha deve ter pelo menos 8 caracteres.",
     firstName: "Nome",
     lastName: "Sobrenome",
@@ -8858,7 +9107,7 @@ const pt: Strings = {
     ecoqos_rules: {
       name: "Regras de eficiência para apps em segundo plano",
       description:
-        "Atribui menor prioridade energética aos executáveis escolhidos enquanto o PC Tweaker está aberto. As regras pausam quando a app fica interativa; não são um limite percentual da CPU.",
+        "Atribui menor prioridade energética aos executáveis escolhidos enquanto o Daltoon X está aberto. As regras pausam quando a app fica interativa; não são um limite percentual da CPU.",
     },
     limit_do_background_download: {
       name: "Limite de transferências Windows em segundo plano",
@@ -9189,7 +9438,22 @@ const pt: Strings = {
   },
 };
 
-export const STRINGS: Record<Lang, Strings> = { it, en, fr, es, de, pt };
+export const STRINGS: Record<Lang, Strings> = { it, en, fr, es, de, pt, ar };
+
+/**
+ * Where the chosen language is remembered.
+ *
+ * Named in one place and exported, because this key is written in `App.tsx` and
+ * read here: two copies of a literal is two chances to rename one and not the
+ * other, and the symptom — a language that silently resets on every launch — is
+ * invisible until a user reports it.
+ *
+ * The previous product's key was `pc-tweaker-lang`. Nothing migrates from it:
+ * Daltoon X has never shipped, so there is no install carrying that value to carry
+ * forward, and leaving it behind would only strand a stale entry in a browser
+ * profile forever.
+ */
+export const LANG_STORAGE_KEY = "wafix-lang";
 
 /**
  * English is the product's primary language: a first-time user always sees
@@ -9200,7 +9464,44 @@ export const STRINGS: Record<Lang, Strings> = { it, en, fr, es, de, pt };
  * rather than international.
  */
 export function detectInitialLang(): Lang {
-  const stored = localStorage.getItem("pc-tweaker-lang");
+  const stored = localStorage.getItem(LANG_STORAGE_KEY);
   if (stored && stored in STRINGS) return stored as Lang;
   return "en";
+}
+
+/**
+ * Languages written right to left.
+ *
+ * Membership is what makes the layout mirror, so it is declared here rather than
+ * inferred from the script of a sample string. Inferred direction is wrong for
+ * exactly the cases that matter: a locale can be Arabic-scripted and still be
+ * left-to-right (Urdu is not in this table because it is not a locale here), and
+ * any future locale added to `Lang` without an entry here would silently render
+ * mirrored-punctuation garbage in an LTR layout rather than fail.
+ */
+const RTL_LANGUAGES: ReadonlySet<Lang> = new Set<Lang>(["ar"]);
+
+/** The writing direction for a language. */
+export function directionFor(lang: Lang): "ltr" | "rtl" {
+  return RTL_LANGUAGES.has(lang) ? "rtl" : "ltr";
+}
+
+/**
+ * Writes the language and direction onto a document element.
+ *
+ * `lang` and `dir` are two attributes answering two different questions — which
+ * language this text is, and which way it runs — and the app needs both to be
+ * right. `dir` is what the browser uses to mirror the layout, and `lang` is what
+ * a screen reader uses to pick a voice and a hyphenation dictionary, so setting
+ * only one leaves the app half-localised in a way that looks fine to a sighted
+ * user and not fine to anyone else.
+ *
+ * Both windows call this — `src/App.tsx` for the main window and
+ * `src/overlay.tsx` for the HUD — because they are separate documents with
+ * separate `<html>` elements and separate bundles.
+ */
+export function applyDocumentLanguage(lang: Lang, root?: HTMLElement): void {
+  const element = root ?? document.documentElement;
+  element.lang = lang;
+  element.dir = directionFor(lang);
 }

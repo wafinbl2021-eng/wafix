@@ -1,17 +1,49 @@
 // Shared data shapes crossing module boundaries. Pure types only.
+/**
+ * The account's state in this app.
+ *
+ * `loading` is a real state rather than an optimisation: on launch the app does
+ * not yet know whether anyone is signed in, and rendering "signed out" during
+ * that window would flash the wrong screen at every user on every start.
+ *
+ * `error` exists so a failed check is *not* a sign-out. A laptop that was asleep
+ * mid-request must not be recorded as signed out — that would silently discard a
+ * good session and, with it, the user's cached Pro licence.
+ */
 export type AuthState =
+  /** Restoring the session. Nothing about the account is known yet. */
+  | { status: "loading" }
   | { status: "anonymous" }
   | {
       status: "authenticated";
       email: string;
       isPro: boolean;
+      /**
+       * Pro without a verification requirement. Daltoon X 1.0.0 has no email
+       * verification at all — no verification request is sent, there is no
+       * unverified state and nothing to wait for — so a signed-in account is
+       * verified by definition and this is always `true`.
+       *
+       * It is *not* derived from the licence. The licence says what the account
+       * is entitled to; it says nothing about whether the address is confirmed,
+       * and conflating the two would make "verified" mean two different things in
+       * one component tree. Kept as a field only so the 1.1.0 code that adds real
+       * verification has somewhere to land.
+       */
       emailVerified: boolean;
-      /** The plan the entitlement came from, or null when Pro was granted
-       *  directly rather than bought. */
+      /**
+       * The plan the signed entitlement carried — `"pro"` or `"lifetime"` — or
+       * null when there is no Pro entitlement. Never a value this process chose:
+       * it is whatever Rust read out of the verified payload, and an unrecognised
+       * plan never reaches here.
+       */
       plan: string | null;
       /** Whether a Stripe customer exists for this account. Pro without one
-       *  has nothing a billing portal could show. */
+       *  has nothing a billing portal could show. False in 1.0.0 — there is no
+       *  Stripe. */
       hasBilling: boolean;
+      /** When this account last signed in, if it had signed in before. */
+      lastLoginAt: string | null;
     };
 
 export type Category = "performance" | "privacy" | "ui" | "manutenzione" | "gaming";
@@ -28,7 +60,7 @@ export type Section =
   | "profiles"
   | "pricing"
   | "ledger"
-  /** The Wafi X catalog screen. Not a tweak category: nothing here is applied
+  /** The Daltoon X catalog screen. Not a tweak category: nothing here is applied
    *  to the registry, and none of it is reversible through the ledger. */
   | "applications";
 
@@ -464,7 +496,7 @@ export type CleanupPreview = {
   accessible: boolean;
 };
 
-/* ---------------- Wafi X Applications (src-tauri/src/wafx.rs) -------------- */
+/* ---------------- Daltoon X Applications (src-tauri/src/wafx.rs) -------------- */
 
 /** The closed container types the catalog may name. Rust refuses anything
  *  else before it downloads a byte, so this union is the whole vocabulary. */
@@ -531,7 +563,21 @@ export type WafxInstallPhaseEvent = {
   phase: "download" | "verify" | "install";
 };
 
-export type WafxInstallResult = { exit_code: number | null; success: boolean };
+/**
+ * What Rust reported about one install attempt.
+ *
+ * `verified` is a fact about what happened, not a quality score. It is `false`
+ * when the catalog published no checksum for that version: the download still
+ * went out over HTTPS and the container header was still checked, but nothing
+ * pinned those bytes to a value recorded beforehand. Anything that describes the
+ * install to the user has to carry that distinction rather than implying a check
+ * that did not happen.
+ */
+export type WafxInstallResult = {
+  exit_code: number | null;
+  success: boolean;
+  verified: boolean;
+};
 
 /** One cache-coherent CPU die, from Rust `x3d::Ccd`. */
 export type Ccd = {

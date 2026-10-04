@@ -636,7 +636,7 @@ fn tick(
             if old_owner_alive {
                 recovery_failed = true;
                 status.last_error =
-                    Some("Another PC Tweaker process owns EcoQoS recovery".to_string());
+                    Some("Another Daltoon X process owns EcoQoS recovery".to_string());
                 continue;
             }
         }

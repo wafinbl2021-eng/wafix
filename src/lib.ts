@@ -4,15 +4,31 @@ import { invoke } from "@tauri-apps/api/core";
 import { format, Lang, Strings } from "./i18n";
 import { DriverAudit } from "./types";
 
-// The first-party Cloudflare hostname is the stable production endpoint.
-// VITE_API_BASE_URL remains available for an explicit local/staging build.
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://api.pctweaker.app";
+// The Daltoon X API. Accounts reach it through Rust (`src/account-client.ts`), not
+// from here — the session cookie is SameSite=Strict and a webview on
+// `http://tauri.localhost` is a different site, so a browser-side fetch could
+// store the cookie and then never send it back. This constant is retained only
+// for the Pro/Stripe paths, which Phase 5 rewires; nothing account-related uses
+// it. See the note on `reportError` below for why it no longer names a host.
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
 
 // ---- Anonymous, opt-in error reporting --------------------------------------
 // Off by default; the AccountMenu toggle flips a localStorage flag that is
-// read at send time (no state plumbing). What leaves the machine: app name,
-// version, and the error message the user already saw — nothing else.
-export const ERROR_REPORTS_KEY = "pc-tweaker-error-reports";
+// read at send time (no state plumbing).
+//
+// DISABLED IN 1.0.0, DELIBERATELY
+// ===============================
+// The only endpoint that ever received these was PC Tweaker's
+// `/api/error-reports`, which also stamped `app: "pctweaker"` on every report.
+// The Daltoon X API has no such route, and inventing one is not this project's call
+// to make. So nothing is sent: a report is built and dropped rather than pointed
+// at somebody else's server.
+//
+// To restore it: add a `/api/error-reports` route to `wafx-api`, then replace the
+// body of `reportError` with a POST to it sending `{ app: "wafix", appVersion,
+// message }`. Nothing else needs to change — the opt-in flag, the toggle and the
+// truncation are all still here.
+export const ERROR_REPORTS_KEY = "wafix-error-reports";
 
 export let cachedAppVersion = "";
 void getVersion()
@@ -20,8 +36,7 @@ void getVersion()
     cachedAppVersion = v;
   })
   .catch(() => {
-    // Without a version the backend rejects the report; reporting simply
-    // stays silent, which is the correct failure mode for telemetry.
+    // Without a version a restored report would be rejected. Not fatal.
   });
 
 export function errorReportsEnabled(): boolean {
@@ -29,18 +44,9 @@ export function errorReportsEnabled(): boolean {
 }
 
 export function reportError(message: string) {
-  if (!API_BASE_URL || !cachedAppVersion || !errorReportsEnabled()) return;
-  fetch(`${API_BASE_URL}/api/error-reports`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      app: "pctweaker",
-      appVersion: cachedAppVersion,
-      message: message.slice(0, 500),
-    }),
-  }).catch(() => {
-    // Fire-and-forget by design: a failed report must never surface an error.
-  });
+  // Intentionally does nothing. See the note above: the destination was a PC
+  // Tweaker endpoint and Daltoon X has nowhere to send reports.
+  void message;
 }
 
 export function formatBytes(bytes: number): string {
@@ -104,42 +110,41 @@ export function loadColor(pct: number): string {
 /** Auto-cleanup choices, in minutes. `0` means "off". */
 export const RAM_AUTO_INTERVALS = [0, 10, 30, 60, 180, 360, 720, 1440] as const;
 
-export const RAM_AUTO_STORAGE_KEY = "pc-tweaker-ram-auto";
-
-/** Only honor a stored value we actually offer: a hand-edited or stale entry
- *  must not become a rogue interval (or a 0ms one, which would spin the CPU). */
-export const TOKEN_KEY = "pc-tweaker-token";
-
-export const EMAIL_KEY = "pc-tweaker-email";
+export const RAM_AUTO_STORAGE_KEY = "wafix-ram-auto";
 
 /**
- * The session token, from whichever store it was put in.
+ * The legacy session keys. These names are DELIBERATELY the previous product's
+ * and must never be renamed, even though every other key here now says `wafix`.
  *
- * localStorage survives a restart, sessionStorage does not — which is exactly
- * the difference "remember me" promises. Reading checks both so the rest of
- * the app never has to care which one was used.
+ * They are not a place this app stores anything — they are the two keys that
+ * previous versions *wrote*, and `purgeLegacySession` exists to delete them. The
+ * string has to be the one that is actually sitting in a user's browser: a
+ * renamed key addresses nothing, the deletion silently stops happening, and a
+ * bearer token stays in localStorage on disk, unencrypted and readable by any
+ * script on the origin, with nothing left that ever revokes it.
+ *
+ * Renaming a purge target is strictly worse than leaving it: the entry is
+ * stranded rather than cleared. Nothing writes either key any more, which is
+ * what makes them safe to keep — a test asserts that.
  */
-export function readToken(): string | null {
-  return localStorage.getItem(TOKEN_KEY) ?? sessionStorage.getItem(TOKEN_KEY);
-}
+export const LEGACY_TOKEN_KEY = "pc-tweaker-token";
 
-export function readStoredEmail(): string | null {
-  return localStorage.getItem(EMAIL_KEY) ?? sessionStorage.getItem(EMAIL_KEY);
-}
+export const LEGACY_EMAIL_KEY = "pc-tweaker-email";
 
-export function storeSession(token: string, email: string, remember: boolean) {
-  // Clear both first, so switching the choice can never leave a stale token
-  // behind in the store that is no longer being written to.
-  clearSession();
-  const store = remember ? localStorage : sessionStorage;
-  store.setItem(TOKEN_KEY, token);
-  store.setItem(EMAIL_KEY, email);
-}
-
-export function clearSession() {
+/**
+ * Deletes any session token a previous version wrote to web storage.
+ *
+ * Daltoon X keeps its session cookie in a DPAPI-encrypted file owned by Rust, so
+ * there is no token for the frontend to hold — not in localStorage, not in
+ * sessionStorage, not anywhere. These two keys are the ones previous versions
+ * wrote, and they are removed once on launch rather than renamed: a stale bearer
+ * token left in localStorage is a credential nobody is ever revoking, and reusing
+ * the key would carry that token's meaning forward instead of clearing it.
+ */
+export function purgeLegacySession() {
   for (const store of [localStorage, sessionStorage]) {
-    store.removeItem(TOKEN_KEY);
-    store.removeItem(EMAIL_KEY);
+    store.removeItem(LEGACY_TOKEN_KEY);
+    store.removeItem(LEGACY_EMAIL_KEY);
   }
 }
 
@@ -226,7 +231,7 @@ export async function sha1Hex(text: string): Promise<string> {
  * to the MSIX build getting a different storage origin than the .exe build.
  * See src-tauri/src/avatar.rs.
  */
-export const AVATAR_KEY = "pc-tweaker-avatar";
+export const AVATAR_KEY = "wafix-avatar";
 
 /**
  * Reads the signed-in account's photo.
@@ -366,7 +371,7 @@ export const FEATURE_INTELLIGENCE = true;
 // the last read. Persisting the last result means a relaunch shows it
 // immediately; only the explicit Rescan button ever pays the sixteen
 // seconds again.
-const DRIVER_AUDIT_KEY = "pc-tweaker-driver-audit";
+const DRIVER_AUDIT_KEY = "wafix-driver-audit";
 
 export function readCachedDriverAudit(): { audit: DriverAudit; at: Date } | null {
   const raw = localStorage.getItem(DRIVER_AUDIT_KEY);

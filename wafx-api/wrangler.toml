@@ -74,6 +74,50 @@ LOGIN_MAX_ATTEMPTS = "10"
 LOGIN_WINDOW_MINUTES = "15"
 
 # ---------------------------------------------------------------------------
+# Accounts
+# ---------------------------------------------------------------------------
+#
+# These are written out at their defaults rather than left implicit, because they
+# are the numbers a reader should be able to check without reading src/env.ts -
+# and because a change to a default in code is then a visible diff here too.
+#
+# They are NOT shared with the admin settings above, and should not be. Admin
+# login is one operator; account login is the public internet. One knob for both
+# means whichever value is looser governs both.
+#
+# The origin the Wafi X *app* is served from - the one allowed to make
+# cookie-authenticated account changes. This is what decides `Secure` and the
+# `__Host-` prefix on the session cookie, so it must be the app's origin and not
+# the API's.
+#
+# Unset means PUBLIC_ORIGIN, which is the right answer whenever the app and the
+# API share an origin. Set it the moment they do not:
+#   ACCOUNT_ORIGIN = "https://app.wafix.workers.dev"
+#
+# Extra origins allowed alongside that one, comma-separated, at most 16. A
+# malformed entry aborts startup rather than being skipped, because a typo in an
+# allowlist should be loud.
+# ACCOUNT_ORIGINS = "https://app.wafix.workers.dev,https://wafix.example"
+
+# Account session lifetime, sliding. 24 hours of *use*, not 24 hours from login.
+ACCOUNT_SESSION_TTL_HOURS = "24"
+
+# Login guesses allowed per ACCOUNT_WINDOW_MINUTES, counted both per IP and per
+# email address. Five, against five above: the same number that is generous for a
+# single known operator is a generous budget for an address anyone can name.
+ACCOUNT_LOGIN_MAX_ATTEMPTS = "5"
+ACCOUNT_WINDOW_MINUTES = "15"
+
+# Registrations allowed per IP per day. A spam ceiling rather than a security
+# one, so it is measured over a much longer window.
+ACCOUNT_REGISTER_MAX_PER_DAY = "5"
+
+# Sessions one account may hold at once. Past this the least recently used is
+# dropped, so a user who signs in and away repeatedly is not locked out by their
+# own history.
+ACCOUNT_SESSION_MAX_PER_ACCOUNT = "10"
+
+# ---------------------------------------------------------------------------
 # R2, when it is actually needed
 # ---------------------------------------------------------------------------
 #

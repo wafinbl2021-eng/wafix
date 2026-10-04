@@ -124,11 +124,67 @@ const binaries = [
   path.join(nsisDir, setup),
   path.join(msiDir, msis[0]),
 ];
+/**
+ * The PowerShell host that runs `verify-authenticode.ps1`.
+ *
+ * This used to hardcode `pwsh`, which is PowerShell 7. Windows ships
+ * PowerShell 5.1 under a different name and nothing else, so on a machine
+ * without 7 installed the call died with a bare ENOENT - and it died *after*
+ * the entire signed build had finished, at the very last step before the
+ * manifest is written. That reads like a broken release script rather than a
+ * missing optional tool, which is why it is worth resolving the host here
+ * instead of hardcoding one.
+ *
+ * `verify-authenticode.ps1` uses nothing newer than 5.1, so the older host
+ * runs it correctly and requiring the newer one buys nothing. The newest host
+ * that actually *runs* wins, probed by executing it rather than by matching a
+ * name, so a stale or broken shim on PATH cannot beat a working host further
+ * down the list.
+ *
+ * `-ExecutionPolicy Bypass` is passed per-process, which is the only level
+ * that leaves the machine alone. It is needed because `-File` is subject to
+ * the execution policy while `-Command` is not: on a stock Windows the policy
+ * for all three scopes is `Undefined` (i.e. `Restricted`), so the script was
+ * refused with "running scripts is disabled on this system" even though the
+ * host had been found correctly. Every other script here is invoked the same
+ * way, so this matches the convention already documented in the repository.
+ * The script it unblocks is read-only verification that never writes outside
+ * a temp directory.
+ */
+function powershellHost() {
+  const candidates = [
+    "pwsh",
+    "powershell.exe",
+    path.join(
+      process.env.SystemRoot || "C:\\Windows",
+      "System32",
+      "WindowsPowerShell",
+      "v1.0",
+      "powershell.exe"
+    ),
+  ];
+  for (const candidate of candidates) {
+    try {
+      execFileSync(candidate, ["-NoProfile", "-NonInteractive", "-Command", "exit 0"], {
+        stdio: "ignore",
+      });
+      return candidate;
+    } catch {
+      // Not installed, or on PATH but not runnable. Try the next one.
+    }
+  }
+  throw new Error(
+    "No usable PowerShell host found. Install PowerShell 7 (`pwsh`), or make sure " +
+      "Windows PowerShell 5.1 (`powershell.exe`) is reachable from PATH."
+  );
+}
+
 const sha256 = (file) => createHash("sha256").update(fs.readFileSync(file)).digest("hex");
 const hashes = new Map(binaries.map((file) => [file, sha256(file)]));
+const powershell = powershellHost();
 for (const binary of binaries) {
-  execFileSync("pwsh", ["-NoProfile", "-NonInteractive", "-File",
-    path.join(root, "scripts", "verify-authenticode.ps1"), "-Path", binary], { stdio: "inherit" });
+  execFileSync(powershell, ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass",
+    "-File", path.join(root, "scripts", "verify-authenticode.ps1"), "-Path", binary], { stdio: "inherit" });
 }
 const updaterSignature = verifyUpdater(path.join(nsisDir, setup), conf.plugins.updater.pubkey);
 verifyUpdater(path.join(msiDir, msis[0]), conf.plugins.updater.pubkey);

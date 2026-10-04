@@ -48,7 +48,7 @@ fn require_lifetime(app_data: &Path) -> Result<(), String> {
     if allowed {
         Ok(())
     } else {
-        Err("These tools require a verified PC Tweaker Lifetime license. Connect to the internet and refresh your license in Account.".into())
+        Err("These tools require a verified Daltoon X Lifetime license. Connect to the internet and refresh your license in Account.".into())
     }
 }
 
@@ -138,9 +138,9 @@ fn read_saved_profile(app_data: &Path, name: &str) -> Result<TweakProfile, Strin
         return Err("A selected profile exceeds the 256 KB size limit.".into());
     }
     let profile: TweakProfile = serde_json::from_slice(&bytes)
-        .map_err(|_| "A selected file is not a valid PC Tweaker profile.".to_string())?;
+        .map_err(|_| "A selected file is not a valid Daltoon X profile.".to_string())?;
     if profile.format != 1 {
-        return Err("A selected profile uses an unsupported format. Save it again with this version of PC Tweaker.".into());
+        return Err("A selected profile uses an unsupported format. Save it again with this version of Daltoon X.".into());
     }
     if profile.name != name {
         return Err(
@@ -256,7 +256,7 @@ fn build_report(catalog: &[TweakInfo], comparison: Option<&ProfileComparison>) -
     let mut recorded: Vec<&TweakInfo> = catalog.iter().filter(|tweak| tweak.applied).collect();
     recorded.sort_by(|a, b| a.id.cmp(&b.id));
     let mut report = format!(
-        "# PC Tweaker tuning report\n\nApp version: {}\n\nRecorded tweak entries: {} of {} in this version's catalog.\n\n## Scope\n\nThis is a point-in-time summary of PC Tweaker's saved configuration records. A recorded entry means a recovery snapshot exists; it can also represent an incomplete change awaiting recovery. It does not prove that a change completed, remains active in Windows, or improved performance. This report contains no FPS, frame-time, DPC latency, or before-and-after measurements.\n\n## Recorded settings\n\n",
+        "# Daltoon X tuning report\n\nApp version: {}\n\nRecorded tweak entries: {} of {} in this version's catalog.\n\n## Scope\n\nThis is a point-in-time summary of Daltoon X's saved configuration records. A recorded entry means a recovery snapshot exists; it can also represent an incomplete change awaiting recovery. It does not prove that a change completed, remains active in Windows, or improved performance. This report contains no FPS, frame-time, DPC latency, or before-and-after measurements.\n\n## Recorded settings\n\n",
         env!("CARGO_PKG_VERSION"), recorded.len(), catalog.len()
     );
     append_tweak_rows(&mut report, &recorded);
@@ -352,7 +352,7 @@ pub fn save_lifetime_report(
     let mut dialog = app
         .dialog()
         .file()
-        .set_title("Save PC Tweaker tuning report")
+        .set_title("Save Daltoon X tuning report")
         .add_filter("Markdown", &["md"])
         .set_file_name("pc-tweaker-tuning-report.md");
     if let Some(window) = app.get_webview_window("main") {
@@ -375,6 +375,11 @@ pub fn save_lifetime_report(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// The account id `a_signed_out_install_is_denied_lifetime_even_with_a_plausible_cache`
+    /// signs in before writing its cache, so the account binding is the only thing
+    /// left to refuse it.
+    const SIGNED_IN_ACCOUNT_ID: &str = "11111111-2222-3333-4444-555555555555";
     use std::fs::File;
     use std::sync::atomic::{AtomicUsize, Ordering};
 
@@ -442,7 +447,7 @@ mod tests {
             user_id: "not-exported".into(),
             is_pro: true,
             plan: Some("lifetime".into()),
-            product: Some("pctweaker".into()),
+            product: crate::license::PRODUCT_ID.into(),
             issued_at: 1,
             expires_at: None,
         };
@@ -467,7 +472,27 @@ mod tests {
     fn a_forged_or_missing_cached_lifetime_license_is_denied() {
         let directory = TempDirectory::new();
         assert!(require_lifetime(&directory.0).is_err());
-        fs::write(directory.0.join("license.json"), r#"{"payloadJson":"{\"userId\":\"local\",\"isPro\":true,\"plan\":\"lifetime\",\"product\":\"pctweaker\",\"issuedAt\":1800000000}","signature":"forged"}"#).unwrap();
+        fs::write(directory.0.join("license.json"), r#"{"payloadJson":"{\"userId\":\"local\",\"isPro\":true,\"plan\":\"lifetime\",\"product\":\"wafix\",\"issuedAt\":1800000000}","signature":"forged"}"#).unwrap();
+        assert!(require_lifetime(&directory.0).is_err());
+    }
+
+    #[test]
+    fn a_signed_out_install_is_denied_lifetime_even_with_a_plausible_cache() {
+        // The account binding is what makes an entitlement follow an account, so
+        // it has to hold at the point of use and not only at fetch time. The file
+        // below is well-formed and would pass a naive "is there a cached payload"
+        // check; what it has no answer for is *whose* licence it is.
+        let directory = TempDirectory::new();
+        crate::account::save_account_id(&directory.0, Some(SIGNED_IN_ACCOUNT_ID));
+        fs::write(
+            directory.0.join("license.json"),
+            r#"{"payloadJson":"{\"userId\":\"someone-else\",\"isPro\":true,\"plan\":\"lifetime\",\"product\":\"wafix\",\"issuedAt\":1800000000}","signature":"forged"}"#,
+        )
+        .unwrap();
+        assert!(require_lifetime(&directory.0).is_err());
+
+        // And with nobody signed in at all.
+        crate::account::save_account_id(&directory.0, None);
         assert!(require_lifetime(&directory.0).is_err());
     }
 

@@ -111,7 +111,7 @@ fn default_dir() -> PathBuf {
     }
     #[cfg(not(windows))]
     {
-        std::env::temp_dir().join("com.aurel.pc-tweaker-app")
+        std::env::temp_dir().join("app.wafix.desktop")
     }
 }
 

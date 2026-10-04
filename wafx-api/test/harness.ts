@@ -20,6 +20,7 @@ import { fileURLToPath } from "node:url";
 import { app } from "../src/index.ts";
 import { DEFAULT_ITERATIONS } from "../src/crypto.ts";
 import type { Database, Statement } from "../src/db.ts";
+import { FIXTURE_SEED_B64 } from "./fixtures/license-key.ts";
 
 /**
  * Synchronous SHA-256, for arranging fixtures without awaiting every call site.
@@ -132,6 +133,16 @@ export class TestD1 implements Database {
     return this.sqlite.prepare(sql).all(...params);
   }
 
+  /**
+   * A parameterised write, for arranging fixtures.
+   *
+   * `query` covers reads and `exec` covers DDL; a test that needs to change one
+   * value in one row should not have to build a string literal to do it.
+   */
+  run(sql: string, ...params: Param[]): void {
+    this.sqlite.prepare(sql).run(...params);
+  }
+
   get<T = Record<string, unknown>>(sql: string, ...params: Param[]): T | undefined {
     return this.sqlite.prepare(sql).get(...params) as T | undefined;
   }
@@ -143,12 +154,46 @@ export class TestD1 implements Database {
 
 export const TEST_ORIGIN = "https://wafx-api.test";
 
+/** The app origin, when a test needs it to differ from the API's own. */
+export const TEST_ACCOUNT_ORIGIN = "https://app.wafix.test";
+
 export interface HarnessOptions {
   readonly publicOrigin?: string;
   readonly bootstrapToken?: string;
   readonly sessionTtlHours?: string;
   readonly loginMaxAttempts?: string;
   readonly loginWindowMinutes?: string;
+
+  /**
+   * Account settings. Left unset, `ACCOUNT_ORIGIN` follows `PUBLIC_ORIGIN` - which
+   * is what the production default does too - and the limits are set high.
+   *
+   * High on purpose. Every request in a test without a `CF-Connecting-IP` header
+   * shares one rate-limit bucket (`clientIp` falls back to `"unknown"`), and the
+   * real defaults are 5 logins per 15 minutes and 5 registrations per day. Left
+   * at production values, the first few unrelated tests in a file would throttle
+   * every test after them for reasons that have nothing to do with what they
+   * assert. `test/accounts.test.ts` passes tight values explicitly to test the
+   * limits themselves, and asserts the production defaults against `readConfig`
+   * directly, so nothing about the real figures is only ever checked here.
+   */
+  readonly accountOrigin?: string;
+  readonly accountOrigins?: string;
+  readonly accountSessionTtlHours?: string;
+  readonly accountLoginMaxAttempts?: string;
+  readonly accountWindowMinutes?: string;
+  readonly accountRegisterMaxPerDay?: string;
+  readonly accountSessionMaxPerAccount?: string;
+
+  /**
+   * The Ed25519 seed used to sign entitlements.
+   *
+   * Defaults to a committed fixture key whose public half is deliberately *not*
+   * the one embedded in `src-tauri/src/license.rs`, so a signature produced in a
+   * test cannot unlock anything in a shipped build. Pass `"unset"` to model a
+   * deployment that forgot the secret.
+   */
+  readonly licenseSigningKey?: string;
 }
 
 export interface RequestOptions extends RequestInit {
@@ -181,6 +226,11 @@ export interface Harness {
  * care about CSRF or about an unauthenticated request pass headers explicitly;
  * `admin: false` does not suppress an existing cookie, so such a test should use
  * a fresh harness.
+ *
+ * One remembered cookie, whichever session issued it last. Admin and account
+ * sessions use different cookie names, so a test that needs both at once has to
+ * keep one of them by hand: pass `headers: { cookie: ... }` explicitly, which
+ * replaces the remembered one rather than merging with it.
  */
 export function harness(options: HarnessOptions = {}): Harness {
   const db = TestD1.create();
@@ -190,8 +240,18 @@ export function harness(options: HarnessOptions = {}): Harness {
     SESSION_TTL_HOURS: options.sessionTtlHours ?? "12",
     LOGIN_MAX_ATTEMPTS: options.loginMaxAttempts ?? "10",
     LOGIN_WINDOW_MINUTES: options.loginWindowMinutes ?? "15",
+    ACCOUNT_SESSION_TTL_HOURS: options.accountSessionTtlHours ?? "24",
+    ACCOUNT_LOGIN_MAX_ATTEMPTS: options.accountLoginMaxAttempts ?? "100",
+    ACCOUNT_WINDOW_MINUTES: options.accountWindowMinutes ?? "15",
+    ACCOUNT_REGISTER_MAX_PER_DAY: options.accountRegisterMaxPerDay ?? "1000",
+    ACCOUNT_SESSION_MAX_PER_ACCOUNT: options.accountSessionMaxPerAccount ?? "10",
   };
+  if (options.accountOrigin !== undefined) env.ACCOUNT_ORIGIN = options.accountOrigin;
+  if (options.accountOrigins !== undefined) env.ACCOUNT_ORIGINS = options.accountOrigins;
   if (options.bootstrapToken !== undefined) env.BOOTSTRAP_TOKEN = options.bootstrapToken;
+  if (options.licenseSigningKey !== "unset") {
+    env.LICENSE_SIGNING_KEY_B64 = options.licenseSigningKey ?? FIXTURE_SEED_B64;
+  }
 
   let cookie: string | null = null;
 

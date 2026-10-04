@@ -1,7 +1,7 @@
 import "./tool-surfaces.css";
 import { useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { format, Strings } from "../i18n";
+import { format, formatCount, Strings } from "../i18n";
 import { formatBytes, gbPair, loadColor, RAM_AUTO_INTERVALS, ramIntervalLabel } from "../lib";
 import { RamCleanResult, SystemStats, Toast } from "../types";
 import { PulseSample, tracePoints } from "./command";
@@ -132,7 +132,7 @@ export function SystemMonitor({ s }: { s: Strings }) {
       <div className="tool-monitor-grid">
         <StatRing
           label={s.systemMonitor.cpu}
-          sublabel={format(s.systemMonitor.cores, { count: stats.cpu_cores })}
+          sublabel={formatCount(s.systemMonitor.cores, stats.cpu_cores)}
           pct={stats.cpu_usage}
         />
         <StatRing

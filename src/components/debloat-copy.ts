@@ -26,7 +26,7 @@ const en = {
   nonRemovable: "Windows marks this package as non-removable.",
   unverifiedRemovability: "Windows could not verify whether this package can be removed.",
   requiresStandardUser:
-    "Reopen PC Tweaker normally, without Run as administrator, to remove apps for your account.",
+    "Reopen Daltoon X normally, without Run as administrator, to remove apps for your account.",
   currentUser: "Current Windows user only",
   scope:
     "Only this account is affected. Apps installed for other users and packages provisioned for new users stay as they are.",
@@ -109,7 +109,7 @@ export const DEBLOAT_COPY: Record<Lang, Copy> = {
     nonRemovable: "Windows indica che questo pacchetto non è rimovibile.",
     unverifiedRemovability: "Windows non ha potuto verificare se il pacchetto è rimovibile.",
     requiresStandardUser:
-      "Riapri PC Tweaker normalmente, senza Esegui come amministratore, per rimuovere app dal tuo account.",
+      "Riapri Daltoon X normalmente, senza Esegui come amministratore, per rimuovere app dal tuo account.",
     currentUser: "Solo utente Windows corrente",
     scope:
       "Cambia solo questo account. Le app degli altri utenti e i pacchetti predisposti per nuovi account restano invariati.",
@@ -192,7 +192,7 @@ export const DEBLOAT_COPY: Record<Lang, Copy> = {
     nonRemovable: "Windows indique que ce package ne peut pas être supprimé.",
     unverifiedRemovability: "Windows n’a pas pu vérifier si ce package peut être supprimé.",
     requiresStandardUser:
-      "Rouvrez PC Tweaker normalement, sans Exécuter en tant qu’administrateur, pour supprimer des applications de votre compte.",
+      "Rouvrez Daltoon X normalement, sans Exécuter en tant qu’administrateur, pour supprimer des applications de votre compte.",
     currentUser: "Utilisateur Windows actuel uniquement",
     scope:
       "Seul ce compte est concerné. Les applications des autres utilisateurs et les packages prévus pour les nouveaux comptes restent inchangés.",
@@ -275,7 +275,7 @@ export const DEBLOAT_COPY: Record<Lang, Copy> = {
     nonRemovable: "Windows indica que este paquete no se puede eliminar.",
     unverifiedRemovability: "Windows no pudo verificar si se puede eliminar este paquete.",
     requiresStandardUser:
-      "Vuelve a abrir PC Tweaker normalmente, sin Ejecutar como administrador, para eliminar aplicaciones de tu cuenta.",
+      "Vuelve a abrir Daltoon X normalmente, sin Ejecutar como administrador, para eliminar aplicaciones de tu cuenta.",
     currentUser: "Solo el usuario actual de Windows",
     scope:
       "Solo afecta a esta cuenta. Las aplicaciones de otros usuarios y los paquetes preparados para cuentas nuevas siguen igual.",
@@ -360,7 +360,7 @@ export const DEBLOAT_COPY: Record<Lang, Copy> = {
     nonRemovable: "Windows kennzeichnet dieses Paket als nicht entfernbar.",
     unverifiedRemovability: "Windows konnte nicht prüfen, ob dieses Paket entfernt werden kann.",
     requiresStandardUser:
-      "Starten Sie PC Tweaker normal, ohne Als Administrator ausführen, um Apps für Ihr Konto zu entfernen.",
+      "Starten Sie Daltoon X normal, ohne Als Administrator ausführen, um Apps für Ihr Konto zu entfernen.",
     currentUser: "Nur aktueller Windows-Benutzer",
     scope:
       "Nur dieses Konto ist betroffen. Apps anderer Benutzer und für neue Konten bereitgestellte Pakete bleiben unverändert.",
@@ -444,7 +444,7 @@ export const DEBLOAT_COPY: Record<Lang, Copy> = {
     nonRemovable: "O Windows marca este pacote como não removível.",
     unverifiedRemovability: "O Windows não conseguiu verificar se este pacote pode ser removido.",
     requiresStandardUser:
-      "Reabra o PC Tweaker normalmente, sem Executar como administrador, para remover aplicações da sua conta.",
+      "Reabra o Daltoon X normalmente, sem Executar como administrador, para remover aplicações da sua conta.",
     currentUser: "Apenas o utilizador atual do Windows",
     scope:
       "Só esta conta é afetada. As aplicações de outros utilizadores e os pacotes preparados para novas contas permanecem iguais.",
@@ -499,6 +499,86 @@ export const DEBLOAT_COPY: Record<Lang, Copy> = {
       "Editor de vídeo. Guarde projetos e ficheiros locais antes de remover; a reinstalação pode não os recuperar.",
     outlook:
       "Aplicação de correio e calendário. Contas e definições podem precisar de nova configuração.",
+  },
+  ar: {
+    title: "التنظيف مع التحكّم",
+    intro: "اختر تطبيقات ويندوز الاختيارية التي تريد إزالتها من هذا الحساب.",
+    apps: "تطبيقات ويندوز",
+    suggestions: "الاقتراحات والخصوصية",
+    history: "السجل والاستعادة",
+    scanning: "جارٍ فحص التطبيقات المثبَّتة…",
+    scan: "أعد الفحص",
+    scanError: "تعذّرت قراءة قائمة التطبيقات. لم يتغيّر اختيارك.",
+    empty: "لا توجد تطبيقات قابلة للإزالة من هذه القائمة المنتقاة مثبَّتة لهذا الحساب.",
+    noMatch: "لا تطبيقات مطابقة لبحثك.",
+    search: "ابحث في التطبيقات المثبَّتة",
+    selected: "محدَّد",
+    installed: "مثبَّت",
+    unavailable: "غير متاح",
+    removable: "قابل للإزالة",
+    all: "الكل",
+    filterLabel: "تصفية التطبيقات",
+    details: "التفاصيل",
+    elevatedTitle: "إزالة التطبيقات تتطلب جلسة عادية",
+    publisherMismatch: "الناشر أو التوقيع لا يطابق تطبيق مايكروسوفت الموثَّق.",
+    protectedPackage: "يحدد ويندوز هذه الحزمة بأنها حزمة مشتركة أو محميّة.",
+    dependency: "يعتمد تطبيق آخر مثبَّت على هذه الحزمة.",
+    nonRemovable: "يضع ويندوز علامة على هذه الحزمة بأنها غير قابلة للإزالة.",
+    unverifiedRemovability: "لم يستطع ويندوز التحقق مما إذا كانت هذه الحزمة قابلة للإزالة.",
+    requiresStandardUser:
+      "أعد فتح Daltoon X بصورة عادية، دون خيار «تشغيل كمسؤول»، لإزالة التطبيقات الخاصة بحسابك.",
+    currentUser: "مستخدم ويندوز الحالي فقط",
+    scope:
+      "لا يتأثر سوى هذا الحساب. وتبقى التطبيقات المثبَّتة لمستخدمين آخرين والحُزَم المهيّأة للمستخدمين الجدد كما هي.",
+    protectedTitle: "تبقى مكوّنات ويندوز الأساسية محميّة",
+    protected:
+      "يُستثنى المتجر ومثبّت التطبيقات والأطر ونواة النظام ومكوّنات الأمان وWebView2 وخدمات الألعاب. أما إزالة OneDrive على مستوى النظام فتحتاج مسارات منفصلة.",
+    choose: "اختر التطبيقات",
+    preview: "راجع الإزالة",
+    previewTitle: "راجع الحِزَم بالضبط",
+    previewIntro:
+      "ستُزال هذه التطبيقات لمستخدم ويندوز الحالي. وقد يمحو ذلك إعدادات التطبيق أو بياناته المحلية. أغلق التطبيقات قبل المتابعة.",
+    identity: "هوية الحزمة",
+    cancel: "إلغاء",
+    remove: "أزل التطبيقات المحدَّدة",
+    removing: "جارٍ الإزالة والتحقق…",
+    resultTitle: "نتائج الإزالة",
+    resultNote:
+      "يتحقق كل نتيجة من هوية الحزمة بالضبط. وغياب التطبيق المؤكَّد لا يثبت أي عملية هو التي أزالته. وإذا كانت الحالة غير معروفة، أعد الفحص قبل اتخاذ قرار.",
+    removed: "غير مثبَّت (مؤكَّد)",
+    failed: "فشل",
+    unknown: "الحالة غير معروفة",
+    pending: "بانتظار التحقق",
+    removalError: "فشل طلب الإزالة. راجع السجل وأعد الفحص قبل المحاولة يدوياً.",
+    refreshError:
+      "انتهت الإزالة، لكن تعذّر تحديث قائمة التطبيقات. أعد الفحص للتحقق من الحالة الحالية.",
+    privacyTitle: "استخدم أدوات ويندوز الحالية",
+    privacyText:
+      "الإعدادات والاقتراحات 관련 الخصوصية موجودة في فئاتها الحالية وتستخدم التراجع بالقيمة المُحفوظة نفسه. ويختلف توفّرها وآثارها حسب إصدار ويندوز وإصداره.",
+    openPrivacy: "افتح إعدادات الخصوصية",
+    openProfiles: "افتح الملفات التعريفية",
+    openRollback: "افتح سجل التغييرات",
+    privacyNote:
+      "إزالة تطبيق لا تُعطّل اقتراحات ويندوز ولا إعدادات الخصوصية. والتراجع عن الإعدادات لا يعيد تثبيت التطبيقات.",
+    historyEmpty: "لم تُسجَّل أي عمليات إزالة تطبيقات بعد.",
+    loadingHistory: "جارٍ تحميل سجل الإزالة…",
+    historyError: "تعذّرت قراءة سجل الإزالة.",
+    reloadHistory: "أعد تحميل السجل",
+    recovery: "افتح صفحة Microsoft Store",
+    recoveryError: "تعذّر فتح رابط المتجر الموثَّق.",
+    recoveryNone: "لا تتوفّر صفحة متجر موثَّقة لهذا التطبيق.",
+    recoveryNote:
+      "قد تستعيد إعادة التثبيت من المتجر التطبيق، لكنها لا تضمن الإصدار الأصلي أو التهيئة أو الإعدادات أو البيانات المحلية. وقد يختلف توفّره في المتجر.",
+    dateUnknown: "التاريخ غير متاح",
+    solitaire:
+      "ألعاب عادية. وقد تمحو إزالتُه إعدادات اللعبة المحلية أو تقدّمها؛ ويعتمد التقدّم المُزامَن على حساب مايكروسوفت لديك.",
+    weather: "قد تحتاج توقعات الطقس وعرض الطقس المثبَّت إلى إعداد من جديد.",
+    news: "قد يُفقَد تطبيق الأخبار وتفضيلاته المحلية.",
+    copilot:
+      "يزيل تطبيق Copilot الاستهلاكي من هذا الحساب. ولا يغيّر سياسات Windows Copilot ولا ميزات الذكاء الاصطناعي الأخرى.",
+    clipchamp:
+      "محرّك فيديو. انسخ مشاريعك وملفاتك المحلية احتياطياً قبل الإزالة؛ وقد لا تستعيدها إعادة التثبيت.",
+    outlook: "تطبيق بريد وتقويم. وقد تحتاج حساباتك وإعدادات التطبيق إلى إعداد من جديد.",
   },
 };
 

@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { open as openFolderDialog } from "@tauri-apps/plugin-dialog";
-import { format, Strings } from "../i18n";
+import { format, formatCount, Strings } from "../i18n";
 import { formatBytes, arcPath, GAUGE_C, GAUGE_R, GAUGE_START, GAUGE_SWEEP, polar } from "../lib";
 import { GameEntry, Toast } from "../types";
 import { BoltIcon } from "./icons";
@@ -136,7 +136,7 @@ export function GameSessionsPanel({
           disabled={games.length === 0}
           onClick={() => setExpanded((value) => !value)}
         >
-          {format(s.gameSessions.gamesCount, { count: games.length })}
+          {formatCount(s.gameSessions.gamesCount, games.length)}
           {games.length > 0 && <span aria-hidden="true">{expanded ? "−" : "+"}</span>}
         </button>
         <button

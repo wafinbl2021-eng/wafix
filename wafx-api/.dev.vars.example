@@ -40,3 +40,14 @@ BOOTSTRAP_TOKEN="replace-me-with-32-random-bytes"
 # wrangler.toml. Kept here as well so a dev session can point somewhere else
 # (a tunnel, another worker) without editing the committed config.
 # PUBLIC_ORIGIN="http://localhost:8787"
+
+# There is no account secret to put here. Account passwords follow exactly the
+# admin model described above - the client derives a verifier with PBKDF2-SHA256,
+# the Worker stores its SHA-256 - so there is nothing for the Worker to hold that
+# it does not already derive from a request.
+#
+# ACCOUNT_ORIGIN is the one account setting worth overriding locally: set it to
+# your dev server's own origin so the session cookie's `Secure` and `__Host-`
+# attributes are computed for that origin rather than for the deployed one.
+# Uncomment, and point both at the same place:
+# ACCOUNT_ORIGIN="http://localhost:1420"

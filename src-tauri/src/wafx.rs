@@ -35,7 +35,7 @@ use crate::installer;
 /// built around. It is overridden by `WAFX_API_BASE` at runtime, or by the
 /// same variable (or `VITE_WAFX_API`, the name the frontend build uses) being
 /// present in the environment at compile time.
-pub const DEFAULT_WAFX_API_BASE: &str = "https://api.wafix.app";
+pub const DEFAULT_WAFX_API_BASE: &str = "https://wafx-api.wafinbl2021.workers.dev";
 
 /// Folder name created inside `%APPDATA%`. Deliberately not the Tauri
 /// `app_data_dir()`: installers are large, user-visible files, and keeping
@@ -285,7 +285,7 @@ fn build_client(app: &AppHandle) -> Result<reqwest::Client, String> {
 /// response" has a single answer and a test.
 fn check_response(status: reqwest::StatusCode, final_scheme: &str) -> Result<(), String> {
     if !status.is_success() {
-        return Err(format!("the Wafi X server answered {status}"));
+        return Err(format!("the Daltoon X server answered {status}"));
     }
     if final_scheme != "https" {
         return Err("refused a redirect that leaves HTTPS".to_string());
@@ -302,14 +302,14 @@ async fn get_json<T: serde::de::DeserializeOwned>(
         .get(parsed)
         .send()
         .await
-        .map_err(|e| format!("could not reach the Wafi X catalog: {e}"))?;
+        .map_err(|e| format!("could not reach the Daltoon X catalog: {e}"))?;
 
     let status = response.status();
     check_response(status, response.url().scheme())?;
     response
         .json::<T>()
         .await
-        .map_err(|e| format!("the Wafi X catalog sent something unreadable: {e}"))
+        .map_err(|e| format!("the Daltoon X catalog sent something unreadable: {e}"))
 }
 
 // ---------------------------------------------------------------------------
@@ -426,6 +426,70 @@ pub fn sanitize_filename(
 }
 
 // ---------------------------------------------------------------------------
+// Container identification
+// ---------------------------------------------------------------------------
+
+/// The first two bytes of every Windows executable: the `MZ` of a DOS header,
+/// which every PE image carries.
+const EXE_SIGNATURE: [u8; 2] = [b'M', b'Z'];
+
+/// The OLE2 compound-file header. An MSI is not a PE image - it is a structured
+/// storage container - so it carries this instead. These eight bytes are a
+/// long-standing format constant, not anything derived from the file's name.
+const MSI_SIGNATURE: [u8; 8] = [0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1];
+
+/// Refuses a download whose own bytes are not the container the catalog declared.
+///
+/// A file name is not evidence. [`sanitize_filename`] deliberately *keeps* an
+/// extension the URL claimed whenever that extension is `exe` or `msi`, so a
+/// server can serve any bytes at all under a name that looks correct — which is
+/// exactly the convenience that makes direct HTTPS URLs easy to add and exactly
+/// why the declared `installer_type` has to be checked against the content.
+///
+/// This is also what stops a mismatch between the two: an MSI served as `exe`
+/// would be launched directly, and an EXE served as `msi` would be handed to
+/// `msiexec`, both of which are the wrong program for the bytes.
+///
+/// Runs against the `.part` file, before it is promoted, so a wrong container
+/// never reaches the final name that a later run would look for.
+pub fn check_container_type(path: &Path, installer_type: &str) -> Result<(), String> {
+    use std::io::Read;
+
+    let wanted: &[u8] = match installer_type {
+        "exe" => &EXE_SIGNATURE,
+        "msi" => &MSI_SIGNATURE,
+        other => return Err(format!("unsupported installer type: {other}")),
+    };
+
+    let mut file = std::fs::File::open(path)
+        .map_err(|e| format!("could not read the download to identify it: {e}"))?;
+    let mut header = [0u8; 8];
+    let mut filled = 0usize;
+    while filled < header.len() {
+        let read = file
+            .read(&mut header[filled..])
+            .map_err(|e| format!("could not read the download to identify it: {e}"))?;
+        if read == 0 {
+            break;
+        }
+        filled += read;
+    }
+
+    if header[..filled].starts_with(wanted) {
+        return Ok(());
+    }
+    let expected = if installer_type == "msi" {
+        "an MSI package"
+    } else {
+        "a Windows executable"
+    };
+    Err(format!(
+        "the download is not {expected}. The catalog published it as {installer_type}, \
+         so it was deleted rather than run."
+    ))
+}
+
+// ---------------------------------------------------------------------------
 // Checksums
 // ---------------------------------------------------------------------------
 
@@ -479,24 +543,60 @@ pub fn checksum_matches(expected: &str, actual: &str) -> bool {
     expected.trim().eq_ignore_ascii_case(actual.trim())
 }
 
+/// The digest the catalog published for a version, if it published a usable one.
+///
+/// Three outcomes, and the difference between the last two is the entire point:
+///
+/// * `Ok(Some(hash))` - verify before running.
+/// * `Ok(None)` - the version published no checksum. It is still installable, but
+///   **unverified**: the download rests on TLS and the recorded size alone, and
+///   nothing in this build may claim otherwise.
+/// * `Err` - the version published a checksum that cannot be used. That is an
+///   error, never `None`: treating an unusable hash as "no hash" would let anyone
+///   able to corrupt that one column turn a verified install into an unverified
+///   one, which is precisely the downgrade this distinction exists to prevent.
+pub fn published_checksum(version: &WafxVersion) -> Result<Option<String>, String> {
+    match version.installer_sha256.as_deref().map(str::trim) {
+        None | Some("") => Ok(None),
+        Some(raw) => {
+            if !is_valid_checksum(raw) {
+                return Err(
+                    "the catalog published a malformed checksum for this version".to_string()
+                );
+            }
+            // Normalised to lowercase so one canonical form comes out whatever case
+            // an operator pasted. The comparison is case-insensitive either way;
+            // this just makes the returned value predictable.
+            Ok(Some(raw.to_ascii_lowercase()))
+        }
+    }
+}
+
 /// Promotes a finished `.part` download to its final name, or destroys it.
 ///
-/// This is the gate. A mismatch removes the file and returns an error, and the
-/// only caller of this function returns that error without reaching
-/// [`crate::installer::run`]. There is no path that launches a file whose digest
-/// has not been compared against the catalog's.
+/// This is the gate, and it has two halves that must both pass before
+/// [`crate::installer::run`] is reachable:
+///
+/// * With a checksum, a mismatch removes the file and returns an error.
+/// * Without one, there is nothing to compare, so the file is promoted and the
+///   caller treats the install as unverified. That is a deliberate relaxation for
+///   convenience, and it is why `expected` is an `Option` rather than a `String`:
+///   "no checksum published" and "checksum published and it did not match" must
+///   never be the same value.
 fn finalize_download(
     part: &Path,
     destination: &Path,
-    expected: &str,
+    expected: Option<&str>,
     computed: &str,
 ) -> Result<(), String> {
-    if !checksum_matches(expected, computed) {
-        let _ = std::fs::remove_file(part);
-        return Err(format!(
-            "checksum mismatch: the catalog says {expected}, the download is {computed}. \
-             The file was deleted and nothing was installed."
-        ));
+    if let Some(expected) = expected {
+        if !checksum_matches(expected, computed) {
+            let _ = std::fs::remove_file(part);
+            return Err(format!(
+                "checksum mismatch: the catalog says {expected}, the download is {computed}. \
+                 The file was deleted and nothing was installed."
+            ));
+        }
     }
     let _ = std::fs::remove_file(destination);
     std::fs::rename(part, destination)
@@ -508,26 +608,23 @@ fn finalize_download(
 // Download
 // ---------------------------------------------------------------------------
 
+/// Downloads one installer and returns the path it may be launched from.
+///
+/// `expected` is the catalog's checksum when it published one. When it is `None`
+/// the download is still performed and still launched, but two things change, and
+/// both are about not claiming more than is true:
+///
+/// * the cached copy is not reused, because there is no digest to re-verify it
+///   against, so the bytes run are the bytes the server is serving now;
+/// * the `Verify` phase is not emitted, so no caller reports a check that did
+///   not happen.
 async fn download_installer(
     app: &AppHandle,
     app_id: &str,
     version: &WafxVersion,
     url: &reqwest::Url,
+    expected: Option<&str>,
 ) -> Result<PathBuf, String> {
-    let expected = version
-        .installer_sha256
-        .as_deref()
-        .map(str::trim)
-        .filter(|hash| !hash.is_empty())
-        .ok_or_else(|| {
-            format!(
-                "{app_id} cannot be installed: the catalog published no checksum for this version."
-            )
-        })?;
-    if !is_valid_checksum(expected) {
-        return Err("the catalog published a malformed checksum".to_string());
-    }
-
     let dir = downloads_dir()?;
     tokio::fs::create_dir_all(&dir)
         .await
@@ -541,19 +638,25 @@ async fn download_installer(
     // the user's bandwidth again. The digest is what makes this safe, and
     // hashing a few hundred megabytes back off disk takes long enough to be
     // worth showing as its own step.
+    //
+    // Only ever reached with a checksum. Without one there is nothing to compare
+    // a cached file against, so reusing it would mean launching bytes of unknown
+    // provenance; the file is dropped and fetched again instead.
     if destination.is_file() {
-        emit_phase(app, app_id, &version.id, InstallPhase::Verify);
-        // Re-hashing a few hundred megabytes off disk blocks for seconds, so
-        // it runs on a blocking thread: on the async worker it would stall the
-        // runtime the progress events are emitted from.
-        let rehashed = destination.clone();
-        let existing = tauri::async_runtime::spawn_blocking(move || checksum_file(&rehashed))
-            .await
-            .ok()
-            .and_then(Result::ok);
-        if let Some(digest) = existing {
-            if checksum_matches(expected, &digest) {
-                return Ok(destination);
+        if expected.is_some() {
+            emit_phase(app, app_id, &version.id, InstallPhase::Verify);
+            // Re-hashing a few hundred megabytes off disk blocks for seconds, so
+            // it runs on a blocking thread: on the async worker it would stall the
+            // runtime the progress events are emitted from.
+            let rehashed = destination.clone();
+            let existing = tauri::async_runtime::spawn_blocking(move || checksum_file(&rehashed))
+                .await
+                .ok()
+                .and_then(Result::ok);
+            if let (Some(expected), Some(digest)) = (expected, existing) {
+                if checksum_matches(expected, &digest) {
+                    return Ok(destination);
+                }
             }
         }
         let _ = std::fs::remove_file(&destination);
@@ -615,9 +718,24 @@ async fn download_installer(
 
     let computed = hex(&hasher.finalize());
 
-    // The digest was accumulated while streaming, so this comparison is the
-    // last thing standing between the bytes on disk and a process launch.
-    emit_phase(app, app_id, &version.id, InstallPhase::Verify);
+    // Second gate, and the one that does not depend on the catalog having
+    // published a digest: the bytes must actually be the container it declared.
+    // Read on the `.part` file so a wrong container is destroyed here rather
+    // than promoted to the name a later run would trust.
+    if let Err(reason) = check_container_type(&part, &version.installer_type) {
+        let _ = std::fs::remove_file(&part);
+        return Err(reason);
+    }
+
+    // The digest was accumulated while streaming, so this comparison is the last
+    // thing standing between the bytes on disk and a process launch. It is
+    // skipped only when the catalog published no digest at all, and skipped
+    // silently on purpose: the phase event above is what tells a caller whether
+    // a check happened, and emitting `Verify` here when `expected` is `None`
+    // would be the claim this design refuses to make.
+    if expected.is_some() {
+        emit_phase(app, app_id, &version.id, InstallPhase::Verify);
+    }
     finalize_download(&part, &destination, expected, &computed)?;
     Ok(destination)
 }
@@ -731,6 +849,13 @@ pub async fn list_wafx_categories(app: AppHandle) -> Result<Vec<WafxCategory>, S
 /// checksum, the container type and the mode are all re-read from the catalog
 /// here, so a compromised or merely wrong webview cannot substitute any of
 /// them.
+///
+/// A version that published a checksum is verified before it runs, exactly as
+/// before. A version that published none is still installable - that is what
+/// makes a plain HTTPS URL enough to add an application - but it is installed
+/// **unverified**: the `Verify` phase is not emitted, the downloaded file is
+/// deleted once the installer exits, and [`installer::InstallOutcome::verified`]
+/// reports `false`, so no caller can describe it as checked.
 #[tauri::command]
 pub async fn install_wafx_app(
     app: AppHandle,
@@ -755,21 +880,51 @@ pub async fn install_wafx_app(
         return Err("this version is not published with a downloadable file".to_string());
     }
 
+    // Resolved before anything is downloaded, so a malformed digest fails in
+    // milliseconds rather than after a long transfer. `Ok(None)` - the catalog
+    // published no digest - is allowed through; `Err` is not.
+    let expected = published_checksum(version)?;
+
     // Resolve the launch before spending any bandwidth, so an unsupported
     // container or mode fails immediately instead of after a long download.
     let url = parse_https(&version.installer_url)?;
     installer::check_supported(&version.installer_type, &version.installer_mode)?;
 
-    let path = download_installer(&app, &app_id, version, &url).await?;
+    let verified = expected.is_some();
+    let path = download_installer(&app, &app_id, version, &url, expected.as_deref()).await?;
 
-    // Reached only because the digest matched. Past this line a verified file
-    // exists on disk and is about to be launched.
+    // Reached only because the container check passed and, where the catalog
+    // published a digest, the digest matched. Past this line a file that is safe
+    // to run exists on disk and is about to be launched.
     emit_phase(&app, &app_id, &version.id, InstallPhase::Install);
 
     let command = installer::command_for(&version.installer_type, &version.installer_mode, &path)?;
-    tauri::async_runtime::spawn_blocking(move || installer::run(&command))
+
+    // `and_then` flattens the join's `Result<Result<..>>` into one, so both the
+    // "could not wait for it" and the "could not start it" exits arrive here as a
+    // single value rather than an early return. That is deliberate: the cleanup
+    // below has to run on every one of those paths, and an early return would skip
+    // it on exactly the ones where the bytes are already on disk.
+    let launched = tauri::async_runtime::spawn_blocking(move || installer::run(&command))
         .await
-        .map_err(|e| format!("the installer could not be waited on: {e}"))?
+        .map_err(|e| format!("the installer could not be waited on: {e}"))
+        .and_then(|started| started);
+
+    // An unverified download is discarded once the installer has run - and also
+    // when it failed to run, since the bytes are on disk either way. There is
+    // nothing to gain from keeping it: with no digest there is no way to tell a
+    // later copy from this one, so leaving it behind would mean a second, equally
+    // unverifiable run from cache. A verified download is kept, which is what
+    // lets the next launch skip the transfer after re-checking the digest.
+    if !verified {
+        let _ = std::fs::remove_file(&path);
+    }
+
+    let outcome = launched?;
+    Ok(installer::InstallOutcome {
+        verified,
+        ..outcome
+    })
 }
 
 pub fn is_catalog_slug(value: &str) -> bool {
@@ -1108,7 +1263,7 @@ mod tests {
         let outcome = finalize_download(
             &part,
             &destination,
-            &"a".repeat(64),
+            Some(&"a".repeat(64)),
             &checksum_hex(b"not the expected bytes"),
         );
 
@@ -1129,7 +1284,7 @@ mod tests {
         finalize_download(
             &part,
             &destination,
-            &checksum_hex(payload),
+            Some(&checksum_hex(payload)),
             &checksum_hex(payload),
         )
         .expect("verified download");
@@ -1291,7 +1446,7 @@ mod tests {
 
         let expected = "a".repeat(64);
         let computed = "b".repeat(64);
-        let error = finalize_download(&part, &destination, &expected, &computed)
+        let error = finalize_download(&part, &destination, Some(&expected), &computed)
             .expect_err("a mismatched digest is an error");
 
         assert!(error.contains("checksum mismatch"), "{error}");
@@ -1299,6 +1454,260 @@ mod tests {
         assert!(
             !destination.exists(),
             "a mismatch must not produce the file the next run would trust"
+        );
+    }
+
+    // ---- Optional checksums ------------------------------------------------
+
+    /// A version row with the fields this section cares about, so the tests below
+    /// state only what they are actually varying.
+    fn version_with(sha: Option<&str>, installer_type: &str) -> WafxVersion {
+        WafxVersion {
+            id: "v1".to_string(),
+            version: "1.0".to_string(),
+            installer_type: installer_type.to_string(),
+            installer_mode: "interactive".to_string(),
+            installer_url_kind: "external".to_string(),
+            installer_url: "https://downloads.example/setup.exe".to_string(),
+            installer_sha256: sha.map(str::to_string),
+            installer_size_bytes: None,
+            release_date: None,
+            created_at: "2026-09-01T00:00:00Z".to_string(),
+        }
+    }
+
+    #[test]
+    fn a_version_without_a_checksum_is_allowed_and_reports_itself_unverified() {
+        // This is the whole point of the feature: a plain HTTPS URL is enough to
+        // add an application, so an absent digest must not be an error.
+        for sha in [None, Some(""), Some("   ")] {
+            let version = version_with(sha, "exe");
+            assert_eq!(
+                published_checksum(&version).expect("an absent digest is not an error"),
+                None,
+                "sha {sha:?} should mean no digest"
+            );
+        }
+    }
+
+    #[test]
+    fn a_published_checksum_is_returned_for_verification() {
+        let digest = checksum_hex(b"abc");
+        let version = version_with(Some(&digest), "exe");
+        assert_eq!(
+            published_checksum(&version).expect("a valid digest"),
+            Some(digest.clone())
+        );
+        // Uppercase survives, because the comparison is case-insensitive and an
+        // operator pasting one must not be silently downgraded to "no digest".
+        let upper = version_with(Some(&digest.to_ascii_uppercase()), "exe");
+        assert_eq!(published_checksum(&upper).expect("uppercase hex"), Some(digest));
+    }
+
+    #[test]
+    fn a_malformed_checksum_is_an_error_and_never_an_absent_one() {
+        // The downgrade this prevents: if an unusable digest were treated as "no
+        // digest", anyone able to corrupt that one column could turn a verified
+        // install into an unverified one and have it succeed.
+        for bad in ["not-a-hash", "zz", &"a".repeat(63), &"a".repeat(65), &"g".repeat(64)] {
+            let version = version_with(Some(bad), "exe");
+            assert!(
+                published_checksum(&version).is_err(),
+                "{bad:?} must be an error, not a missing digest"
+            );
+        }
+    }
+
+    #[test]
+    fn a_download_with_no_checksum_is_promoted_without_being_compared() {
+        let dir = temp_dir("nohash");
+        let part = dir.join("setup.exe.part");
+        let destination = dir.join("setup.exe");
+        let payload = b"whatever the server served, unverified";
+        std::fs::write(&part, payload).expect("write");
+
+        finalize_download(&part, &destination, None, &checksum_hex(payload))
+            .expect("an absent digest must not block the download");
+
+        assert!(!part.exists());
+        assert_eq!(std::fs::read(&destination).expect("read"), payload);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn an_absent_digest_is_not_the_same_thing_as_a_mismatch() {
+        // `None` promotes, a wrong digest destroys. If these were the same value a
+        // single typo in the panel would silently disable verification.
+        let dir = temp_dir("none-vs-mismatch");
+        let promoted = dir.join("a.exe");
+        std::fs::write(dir.join("a.exe.part"), b"payload").expect("write");
+        assert!(finalize_download(&dir.join("a.exe.part"), &promoted, None, "anything").is_ok());
+        assert!(promoted.exists());
+
+        let refused = dir.join("b.exe");
+        std::fs::write(dir.join("b.exe.part"), b"payload").expect("write");
+        assert!(
+            finalize_download(&dir.join("b.exe.part"), &refused, Some(&"a".repeat(64)), "different")
+                .is_err()
+        );
+        assert!(!refused.exists(), "a mismatch must not produce a file");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    // ---- Container identification -----------------------------------------
+
+    /// A file whose first bytes are exactly `bytes`, plus the usual noise after.
+    fn file_starting_with(label: &str, bytes: &[u8]) -> (std::path::PathBuf, std::path::PathBuf) {
+        let dir = temp_dir(label);
+        let path = dir.join("payload.bin");
+        let mut content = bytes.to_vec();
+        content.extend_from_slice(&[0x5A; 64]);
+        std::fs::write(&path, &content).expect("write");
+        (dir, path)
+    }
+
+    #[test]
+    fn an_exe_and_an_msi_are_each_accepted_for_the_type_they_really_are() {
+        let (dir, path) = file_starting_with("real-exe", b"MZ\x90\x00");
+        assert!(check_container_type(&path, "exe").is_ok());
+        let _ = std::fs::remove_dir_all(&dir);
+
+        let (dir, path) =
+            file_starting_with("real-msi", &[0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1]);
+        assert!(check_container_type(&path, "msi").is_ok());
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn a_container_that_does_not_match_the_declared_type_is_refused() {
+        // The case that matters: an EXE served as `msi` would be handed to
+        // msiexec, and an MSI served as `exe` would be launched directly. Both are
+        // the wrong program for the bytes.
+        let (dir, exe) = file_starting_with("exe-as-msi", b"MZ\x90\x00");
+        let error = check_container_type(&exe, "msi").expect_err("an EXE is not an MSI");
+        assert!(error.contains("not an MSI package"), "{error}");
+        let _ = std::fs::remove_dir_all(&dir);
+
+        let (dir, msi) =
+            file_starting_with("msi-as-exe", &[0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1]);
+        let error = check_container_type(&msi, "exe").expect_err("an MSI is not an EXE");
+        assert!(error.contains("not a Windows executable"), "{error}");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn a_file_that_is_neither_container_is_refused() {
+        // An HTML error page or a JSON body served with a 200 is the realistic
+        // case, and its first bytes are neither signature.
+        let (dir, path) = file_starting_with("not-an-installer", b"<!DOCTYPE html>");
+        assert!(check_container_type(&path, "exe").is_err());
+        assert!(check_container_type(&path, "msi").is_err());
+        let _ = std::fs::remove_dir_all(&dir);
+
+        // Empty and truncated files are refused too, rather than read as a match.
+        let dir = temp_dir("empty");
+        let empty = dir.join("empty.bin");
+        std::fs::write(&empty, b"").expect("write");
+        assert!(check_container_type(&empty, "exe").is_err());
+        let short = dir.join("short.bin");
+        std::fs::write(&short, b"M").expect("write");
+        assert!(check_container_type(&short, "exe").is_err());
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn an_unknown_declared_type_is_refused_rather_than_guessed_at() {
+        let (dir, path) = file_starting_with("unknown-type", b"MZ\x90\x00");
+        for bad in ["bat", "powershell", "cmd", ""] {
+            assert!(
+                check_container_type(&path, bad).is_err(),
+                "{bad:?} must not be accepted as a container"
+            );
+        }
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn the_container_check_does_not_believe_the_file_name() {
+        // `sanitize_filename` deliberately keeps an `exe`/`msi` extension the URL
+        // claimed, so a name can say one thing and the bytes another. That is the
+        // convenience being paid for, and the content check is what pays for it:
+        // a file called `.msi` is judged on its header, never on its name.
+        let url = parse_https("https://downloads.example/actually-an-exe.msi").expect("https");
+        let name = sanitize_filename(&url, "thing", "1.0", "exe");
+        assert_eq!(name, "actually-an-exe.msi", "the name keeps what the URL claimed");
+
+        let (dir, path) = file_starting_with("named-msi", b"MZ\x90\x00");
+        // Declared as an exe: the MZ header agrees, whatever the name says.
+        assert!(check_container_type(&path, "exe").is_ok());
+        // Declared as an msi: refused, because the header does not agree.
+        assert!(check_container_type(&path, "msi").is_err());
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// The unverified path must not have quietly grown a second launch site, and
+    /// the gates must still sit above the launch.
+    #[test]
+    fn the_optional_digest_did_not_move_the_launch_or_its_gates() {
+        let body = function_source("install_wafx_app");
+        let lines: Vec<&str> = body.lines().collect();
+
+        assert_eq!(
+            lines.iter().filter(|l| l.contains("installer::run(")).count(),
+            1,
+            "installer::run must still have exactly one call site"
+        );
+        let launch = lines
+            .iter()
+            .position(|l| l.contains("installer::run("))
+            .expect("the launch site");
+
+        for marker in [
+            "installer::check_supported(&version.installer_type",
+            "let url = parse_https(",
+            "let expected = published_checksum(",
+            "let path = download_installer(",
+        ] {
+            let at = lines
+                .iter()
+                .position(|l| l.contains(marker))
+                .unwrap_or_else(|| panic!("{marker} is gone from the install path"));
+            assert!(at < launch, "{marker} must run before the installer is launched");
+        }
+
+        // Still exactly one process in the whole function, and it is not a shell.
+        let spawn = ["Command", "::", "new"].concat();
+        assert!(
+            !lines.iter().any(|l| l.contains(spawn.as_str())),
+            "only installer::run may start a process"
+        );
+    }
+
+    /// A cached file may only be reused when something can re-verify it.
+    #[test]
+    fn the_cached_copy_is_reused_only_when_there_is_a_digest_to_re_verify_it() {
+        let body = function_source("download_installer");
+        let all: Vec<&str> = body.lines().collect();
+        let reuse = all
+            .iter()
+            .position(|l| l.contains("if destination.is_file()"))
+            .expect("the reuse branch");
+        let rehash = all
+            .iter()
+            .position(|l| l.contains("checksum_file(&rehashed)"))
+            .expect("the re-hash");
+        assert!(reuse < rehash, "the reuse decision comes before the re-hash it needs");
+
+        // The gate lives *inside* the reuse branch, so the region to inspect is
+        // between the two, not before the branch.
+        let region = &all[reuse..rehash];
+        let guards = region
+            .iter()
+            .filter(|l| l.contains("expected.is_some()"))
+            .count();
+        assert_eq!(
+            guards, 1,
+            "reuse must be gated on a published digest, so an unverifiable file is refetched"
         );
     }
 

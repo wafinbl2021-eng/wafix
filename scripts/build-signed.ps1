@@ -4,53 +4,56 @@
 
 .DESCRIPTION
   `tauri.conf.json` sets bundle.createUpdaterArtifacts, so every release build
-  must produce a signed latest.json (plus .sig) for the Tauri updater. Tauri
-  reads the private key from TAURI_SIGNING_PRIVATE_KEY, and refuses to sign at
-  all when that variable is unset - which is the current state of this machine:
-  the failure is
+  must produce a signed latest.json (plus .sig) for the Tauri updater.
 
-      A public key has been found, but no private key.
-      Make sure to set TAURI_SIGNING_PRIVATE_KEY environment variable.
+  The private key never lives in this repository. It is read from:
 
-  This script is the supported way to run a signed release build.
-
-  The private key never lives in this repository. It is read from one of:
-
-    - a file path given to -KeyFile, which should be outside the working tree
-    - the TAURI_SIGNING_PRIVATE_KEY environment variable (key text or a path)
+    - a file path given to -KeyFile
+    - the TAURI_SIGNING_PRIVATE_KEY_PATH environment variable
 
   ...and it is refused outright if the path is inside the repository, because a
   public repository plus a committed signing key is a permanently compromised
   updater that no amount of later rotation repairs for users who already
   installed a malicious build.
 
-  The key must also match `plugins.updater.pubkey` in src-tauri/tauri.conf.json.
-  That is checked here rather than trusted: signing with the wrong key produces
-  artifacts that every installed client rejects, and the failure only shows up
-  on other people's machines. The check compares minisign key IDs, which are
-  derived from the public key, so a mismatch means a genuinely different key.
+  The key must also match `plugins.updater.pubkey` in src-tauri/tauri.conf.json,
+  and this script proves it rather than trusting it. The proof is a signature:
+  a throwaway probe is signed with the real Tauri signer using the local key,
+  and the result is verified with Ed25519 against the committed public key.
+  Signing with the wrong key produces artifacts every installed client rejects,
+  and that failure only shows up on other people's machines.
 
-  Changing the pubkey is out of scope: the shipped clients trust the committed
-  one, and update_identity.rs pins the artifact filenames the signature covers.
-  A new key is a deliberate migration, not a side effect of running a build.
+  An earlier version of this check compared a key ID read from fixed byte
+  offsets in the private key. That cannot work: `tauri signer generate` writes
+  an encrypted rsign key whose payload is a scrypt-encrypted blob, so the key ID
+  is not in the file to be read and no offset recovers it. It also only compared
+  strings, which shows a resemblance rather than a relationship. Verifying a real
+  signature holds for any key format and any encryption.
+
+  Verification uses Tauri's own signer plus Node's built-in Ed25519. No minisign
+  CLI is required.
+
+  Nothing here prints the private key or its password, writes either to a file,
+  or accepts either as a command-line argument.
 
 .PARAMETER KeyFile
-  Path to the minisign private key. Keep it outside this repository.
+  Path to the minisign/rsign private key. Keep it outside this repository.
 
 .PARAMETER Password
-  Private key password. Prefer TAURI_SIGNING_PRIVATE_KEY_PASSWORD in the
-  environment over passing it here: this process's command line is readable by
-  other processes on the machine.
+  Private key password. Required for an encrypted key. Prefer
+  TAURI_SIGNING_PRIVATE_KEY_PASSWORD in the environment over passing it here.
+  Either way it reaches the signer through the environment, never through a
+  command line that other processes on this machine can read.
 
 .PARAMETER DryRun
-  Resolve and verify the key, print what would run, and stop.
+  Verify the key, print what would run, and stop.
 
 .EXAMPLE
   powershell -ExecutionPolicy Bypass -File scripts/build-signed.ps1 -DryRun
 
 .EXAMPLE
   powershell -ExecutionPolicy Bypass -File scripts/build-signed.ps1 `
-    -KeyFile D:\keys\wafix-updater.key
+    -KeyFile C:\Users\Wafi\.wafix\updater.key
 #>
 [CmdletBinding()]
 param(
@@ -60,130 +63,294 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+Set-StrictMode -Version Latest
 $repo = (Resolve-Path "$PSScriptRoot/..").Path
 
-function Get-PubkeyIdFromConfig {
-  $confPath = Join-Path $repo 'src-tauri/tauri.conf.json'
-  $conf = Get-Content $confPath -Raw | ConvertFrom-Json
-  if (-not $conf.plugins -or -not $conf.plugins.updater -or -not $conf.plugins.updater.pubkey) {
-    throw "No plugins.updater.pubkey in $confPath. Without it the updater trusts nothing and signing is pointless."
-  }
-  $decoded = [System.Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($conf.plugins.updater.pubkey))
-  # First line is: untrusted comment: minisign public key: <KEYID>
-  if ($decoded -notmatch 'minisign public key:\s*([0-9A-Fa-f]+)') {
-    throw 'plugins.updater.pubkey does not look like a minisign public key.'
-  }
-  return @($Matches[1], $decoded)
-}
+# `tauri signer sign` asks the terminal for a password whenever it has none,
+# which in a build script means a release waits on a keyboard that is not there.
+# Verified on tauri-cli 2.11.4: with no password anywhere it blocks indefinitely,
+# even with stdin closed. Supplying one through the environment avoids the
+# prompt entirely. Everything below goes through Invoke-TauriSigner so that can
+# never happen by accident.
+$script:SignerTimeoutSeconds = 180
 
-function Get-PrivateKeyId {
-  param([string[]]$Lines)
+function Get-KeyPath {
+  param([string]$Explicit)
 
-  # A minisign secret key is four lines: comment, base64 payload, checksum and
-  # the global signature. The key ID is the last 8 bytes of the decoded payload,
-  # i.e. bytes 64..72.
-  if ($Lines.Count -lt 2) {
-    throw 'That does not look like a minisign private key: fewer than two lines.'
-  }
-  $comment = $Lines[0].Trim()
-  if ($comment -notmatch 'minisign (encrypted )?secret key') {
-    throw "Line 1 of a minisign private key carries the comment 'minisign secret key' or 'minisign encrypted secret key'. Found: $comment"
-  }
-  $payload = $Lines[1].Trim()
-  if ($payload -notmatch '^[A-Za-z0-9+/=]+$') {
-    throw "Line 2 of the private key is not base64. Found: $payload"
-  }
-  $bytes = $null
-  try { $bytes = [Convert]::FromBase64String($payload) } catch { throw 'Line 2 of the private key is not valid base64.' }
-  if ($bytes.Length -lt 72) {
-    throw "Private key payload is $($bytes.Length) bytes; a minisign secret key needs at least 72."
-  }
-  $id = ($bytes[64..71] | ForEach-Object { $_.ToString('X2') }) -join ''
-  return $id
-}
+  if ($Explicit) { return $Explicit }
 
-# ---------------------------------------------------------------------------
-# 1. Resolve the key from outside the repository.
-# ---------------------------------------------------------------------------
+  $fromPath = $env:TAURI_SIGNING_PRIVATE_KEY_PATH
+  if (-not [string]::IsNullOrWhiteSpace($fromPath)) { return $fromPath }
 
-if (-not $KeyFile) {
-  $fromEnv = $env:TAURI_SIGNING_PRIVATE_KEY
-  if ([string]::IsNullOrWhiteSpace($fromEnv)) {
-    throw @"
-TAURI_SIGNING_PRIVATE_KEY is not set, and -KeyFile was not given.
+  $fromKey = $env:TAURI_SIGNING_PRIVATE_KEY
+  if (-not [string]::IsNullOrWhiteSpace($fromKey)) {
+    if ($fromKey.Contains("`n") -or $fromKey.Contains("`r")) {
+      throw @"
+TAURI_SIGNING_PRIVATE_KEY holds key text rather than a path.
+
+This script will not use it. The key would have to travel to the signer as a
+command-line argument, where other processes on this machine can read it. Point
+the script at the file instead:
+
+  -KeyFile <path>
+or
+  set TAURI_SIGNING_PRIVATE_KEY_PATH=<path>
+"@
+    }
+    return $fromKey
+  }
+
+  throw @"
+No private key was given.
 
 There is no private key in this repository and there should not be one. Keep the
 minisign key outside the working tree and point at it:
 
   powershell -ExecutionPolicy Bypass -File scripts/build-signed.ps1 -KeyFile <path>
 
-To check the setup without building anything, add -DryRun.
+or set TAURI_SIGNING_PRIVATE_KEY_PATH. To check the setup without building
+anything, add -DryRun.
+"@
+}
+
+# Whether the key is encrypted, read without printing or decrypting anything.
+# rsign writes the armored key wrapped in base64 on a single line, so unwrap it
+# first; the header is a comment and carries no key material.
+function Test-KeyIsEncrypted {
+  param([string]$Path)
+
+  $text = [System.IO.File]::ReadAllText($Path)
+  if ($text.Contains('encrypted secret key')) { return $true }
+
+  $trimmed = $text.Trim()
+  if (-not $trimmed.Contains("`n") -and $trimmed -match '^[A-Za-z0-9+/]+={0,2}$') {
+    try {
+      $decoded = [System.Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($trimmed))
+      return $decoded.Contains('encrypted secret key')
+    } catch {
+      return $false
+    }
+  }
+  return $false
+}
+
+function Get-TauriCliScript {
+  $cli = Join-Path $repo 'node_modules\@tauri-apps\cli\tauri.js'
+  if (Test-Path $cli) { return $cli }
+  throw @"
+Could not find the Tauri CLI at
+
+  $cli
+
+Run `npm install` before building. The signer is invoked through node rather
+than a .cmd shim so that the child process can be given an exact environment and
+a hard timeout.
+"@
+}
+
+function Invoke-TauriSigner {
+  param(
+    [string]$CliScript,
+    [string]$KeyPath,
+    [string]$ProbePath,
+    [string]$Secret
+  )
+
+  $arguments = @($CliScript, 'signer', 'sign', '--private-key-path', $KeyPath)
+  if ([string]::IsNullOrWhiteSpace($Secret)) {
+    # An unencrypted key still needs a password argument, or the CLI blocks on
+    # a terminal prompt. Empty, so there is nothing to expose.
+    $arguments += @('--password', '')
+  }
+  $arguments += $ProbePath
+
+  $startInfo = New-Object Diagnostics.ProcessStartInfo
+  $startInfo.FileName = (Get-Command node.exe -ErrorAction SilentlyContinue).Source
+  if (-not $startInfo.FileName) { $startInfo.FileName = 'node' }
+  $startInfo.Arguments = ($arguments | ForEach-Object { '"' + ($_ -replace '"', '\"') + '"' }) -join ' '
+  $startInfo.WorkingDirectory = $repo
+  $startInfo.UseShellExecute = $false
+  $startInfo.RedirectStandardOutput = $true
+  $startInfo.RedirectStandardError = $true
+
+  # Inherit a clean slate: a stray key or password in this shell must not decide
+  # which key a release gets signed with.
+  foreach ($name in @('TAURI_SIGNING_PRIVATE_KEY', 'TAURI_SIGNING_PRIVATE_KEY_PATH', 'TAURI_SIGNING_PRIVATE_KEY_PASSWORD')) {
+    $startInfo.EnvironmentVariables.Remove($name)
+  }
+  if (-not [string]::IsNullOrWhiteSpace($Secret)) {
+    $startInfo.EnvironmentVariables['TAURI_SIGNING_PRIVATE_KEY_PASSWORD'] = $Secret
+  }
+
+  $process = [Diagnostics.Process]::Start($startInfo)
+  $stdout = $process.StandardOutput.ReadToEndAsync()
+  $stderr = $process.StandardError.ReadToEndAsync()
+
+  if (-not $process.WaitForExit($script:SignerTimeoutSeconds * 1000)) {
+    try { $process.Kill() } catch { }
+    throw @"
+The Tauri signer did not finish within $script:SignerTimeoutSeconds seconds and was stopped.
+
+It was signing the probe. No signature was produced and nothing was built.
 "@
   }
-  # Tauri accepts either the key text or a path here, so handle both.
-  if ($fromEnv -match '^\s*(untrusted comment|RWY)' -or $fromEnv -match "`n") {
-    Write-Host 'Key read from TAURI_SIGNING_PRIVATE_KEY (inline text).'
-    $keyText = $fromEnv
-  }
-  else {
-    $KeyFile = $fromEnv
-    if (-not (Test-Path $KeyFile)) {
-      throw "TAURI_SIGNING_PRIVATE_KEY looks like a path but the file does not exist: $KeyFile"
-    }
-    $keyText = Get-Content $KeyFile -Raw
-  }
-}
-else {
-  if (-not (Test-Path $KeyFile)) { throw "Key file not found: $KeyFile" }
-  $resolved = (Resolve-Path $KeyFile).Path
-  $KeyFile = $resolved
-  $keyText = Get-Content $KeyFile -Raw
+  # Lets the redirected streams drain, which the timed overload does not do.
+  $process.WaitForExit()
 
-  # A key inside the repository would be caught by .gitignore on commit, but it
-  # still has no business being read from here.
-  $repoPrefix = $repo.TrimEnd('\') + '\'
-  if ($resolved.StartsWith($repoPrefix, [System.StringComparison]::OrdinalIgnoreCase)) {
-    throw @"
+  foreach ($line in (($stdout.Result + "`n" + $stderr.Result) -split "`r?`n")) {
+    if ($line.Trim()) { Write-Host "    $line" }
+  }
+  return $process.ExitCode
+}
+
+# The probe is a file, not a directory tree, so cleaning it up never walks a
+# tree, never follows a link and cannot reach a sibling. The name and the parent
+# are checked anyway, because a bug in deleting something in a temp directory is
+# invisible by construction.
+function Remove-ProbeFile {
+  param([string]$Path, [string]$TempRoot, [string]$ExpectedName)
+
+  if (-not (Test-Path -LiteralPath $Path)) { return }
+
+  $item = Get-Item -LiteralPath $Path -Force
+  if ($item.PSIsContainer -or ($item.Attributes -band [IO.FileAttributes]::ReparsePoint)) {
+    throw "Refusing to remove $Path : it is not a plain file."
+  }
+  $full = [IO.Path]::GetFullPath($Path)
+  $parent = [IO.Path]::GetDirectoryName($full).TrimEnd('\', '/')
+  $root = [IO.Path]::GetFullPath($TempRoot).TrimEnd('\', '/')
+  if (-not $parent.Equals($root, [StringComparison]::OrdinalIgnoreCase)) {
+    throw "Refusing to remove $full : it is not directly under the temporary root."
+  }
+  if ([IO.Path]::GetFileName($full) -cne $ExpectedName) {
+    throw "Refusing to remove $full : unexpected file name."
+  }
+  Remove-Item -LiteralPath $full -Force
+}
+
+# ---------------------------------------------------------------------------
+# 1. Resolve the key from outside the repository.
+# ---------------------------------------------------------------------------
+
+$keyPath = Get-KeyPath -Explicit $KeyFile
+$repoPrefix = $repo.TrimEnd('\') + '\'
+
+# Checked before the key is opened, and on the unresolved path, so that "this
+# key must not live in this repository" is answered the same way whether or not
+# the file turns out to be readable. Answering it second would let an unreadable
+# path quietly take a different route past the one rule that cannot bend.
+$candidate = [System.IO.Path]::GetFullPath($keyPath)
+if ($candidate.StartsWith($repoPrefix, [System.StringComparison]::OrdinalIgnoreCase)) {
+  throw @"
 The private key is inside this repository:
 
-  $resolved
+  $candidate
 
 Move it out first. A signing key that lives next to the source is a key that will
 eventually be committed, and this repository is public.
 "@
-  }
 }
+
+if (-not (Test-Path -LiteralPath $candidate -PathType Leaf)) { throw "Key file not found: $candidate" }
+$keyPath = (Resolve-Path -LiteralPath $candidate).Path
 
 # ---------------------------------------------------------------------------
 # 2. Prove the key is the one the shipped clients trust.
 # ---------------------------------------------------------------------------
 
-$configId, $pubkeyText = Get-PubkeyIdFromConfig
-$keyId = Get-PrivateKeyId -Lines ($keyText -split "`r?`n")
+if (-not $Password) { $Password = $env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD }
+$isEncrypted = Test-KeyIsEncrypted -Path $keyPath
+
+if ($isEncrypted -and [string]::IsNullOrWhiteSpace($Password)) {
+  throw @"
+The private key at
+
+  $keyPath
+
+is encrypted, and no password was available. Without it the signer cannot read
+the key, and skipping the check would skip the only thing this script exists to
+prove.
+
+Set the password in the environment rather than on the command line, which other
+processes on this machine can read. For this session only:
+
+  `$env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD = '<password>'
+
+or persist it with:
+
+  setx TAURI_SIGNING_PRIVATE_KEY_PASSWORD <password>
+
+It is never printed, written to a file, or passed as an argument.
+"@
+}
+
+$tempRoot = (Resolve-Path -LiteralPath ([IO.Path]::GetTempPath())).ProviderPath
+$probeName = 'wafx-signer-' + [guid]::NewGuid().ToString() + '.bin'
+$probePath = Join-Path $tempRoot $probeName
+$signaturePath = $probePath + '.sig'
 
 Write-Host ''
 Write-Host 'Updater signing key'
-Write-Host ("  committed pubkey id : {0}" -f $configId)
-Write-Host ("  private key id      : {0}" -f $keyId)
+Write-Host ("  key file             : {0}" -f $keyPath)
+Write-Host  '  inside repository    : no'
+Write-Host ("  encrypted            : {0}" -f $isEncrypted)
+Write-Host ("  password available   : {0}" -f (-not [string]::IsNullOrWhiteSpace($Password)))
+Write-Host ("  password via         : {0}" -f $(if ($Password) { 'environment' } else { 'none needed' }))
 
-if ($keyId -ne $configId) {
-  throw @"
-These do not match.
+$probeBytes = New-Object byte[] 64
+# RandomNumberGenerator.Create() rather than the static Fill, which does not
+# exist on Windows PowerShell 5.1 - the version a user is most likely to run
+# this from, and the one where a build script should not fall over.
+$probeRng = [System.Security.Cryptography.RandomNumberGenerator]::Create()
+try { $probeRng.GetBytes($probeBytes) } finally { $probeRng.Dispose() }
+
+try {
+  [System.IO.File]::WriteAllBytes($probePath, $probeBytes)
+
+  Write-Host ''
+  Write-Host 'Signing a throwaway probe with the real Tauri signer...'
+  $signExit = Invoke-TauriSigner -CliScript (Get-TauriCliScript) -KeyPath $keyPath -ProbePath $probePath -Secret $Password
+
+  if ($signExit -ne 0) {
+    throw "The Tauri signer exited with code $signExit. The key was not read; see its output above."
+  }
+  if (-not (Test-Path -LiteralPath $signaturePath)) {
+    throw 'The Tauri signer reported success but produced no .sig file.'
+  }
+
+  # plugins.updater.pubkey is base64 of the armored minisign public key. The
+  # probe's signature is checked against exactly that, so what is proved is the
+  # pairing, not a resemblance between two key IDs.
+  Write-Host ''
+  Write-Host 'Verifying the signature against plugins.updater.pubkey'
+  & node "$PSScriptRoot/verify-signing-key.mjs" --sig $signaturePath --payload $probePath 2>&1 |
+    ForEach-Object { Write-Host "    $_" }
+  $verifyExit = $LASTEXITCODE
+
+  if ($verifyExit -ne 0) {
+    throw @"
+The private key and plugins.updater.pubkey do not match.
 
 Signing with this key would produce a latest.json that every installed client
-rejects, because update_identity.rs and plugins.updater.pubkey pin the key that
-was shipped with the app. The failure would only appear on user machines.
+rejects, because the app verifies updates against the committed public key. The
+failure would only appear on other people's machines.
 
-The committed pubkey is part of the app's updater identity, so it is not changed
-here. Either point -KeyFile at the key that matches it, or treat rotating to a
-new key as its own deliberate change.
+Either point -KeyFile at the key that matches the committed public key, or treat
+rotating to a new key as its own deliberate change.
 "@
+  }
+
+  Write-Host ''
+  Write-Host '  match                : yes'
 }
-Write-Host '  match               : yes'
+finally {
+  Remove-ProbeFile -Path $signaturePath -TempRoot $tempRoot -ExpectedName ($probeName + '.sig')
+  Remove-ProbeFile -Path $probePath -TempRoot $tempRoot -ExpectedName $probeName
+}
 
 if ($DryRun) {
   Write-Host ''
-  Write-Host '-DryRun: key resolved and verified. Not building.'
+  Write-Host '-DryRun: the key signed a real probe that verified against the committed public key. Not building.'
   exit 0
 }
 
@@ -193,7 +360,7 @@ if ($DryRun) {
 
 # Tauri reads both variables; set them for this process and its children only, so
 # nothing lands in a shell profile or a checked-in file.
-$env:TAURI_SIGNING_PRIVATE_KEY = $keyText
+$env:TAURI_SIGNING_PRIVATE_KEY = [System.IO.File]::ReadAllText($keyPath)
 if ($Password) { $env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD = $Password }
 
 Write-Host ''
@@ -208,6 +375,7 @@ try {
 finally {
   # Do not leave the key in the environment of this shell either.
   Remove-Item Env:\TAURI_SIGNING_PRIVATE_KEY -ErrorAction SilentlyContinue
+  Remove-Item Env:\TAURI_SIGNING_PRIVATE_KEY_PASSWORD -ErrorAction SilentlyContinue
   Pop-Location
 }
 

@@ -349,7 +349,13 @@ export function GuidePage({ path, navigate }: { path: string; navigate: (to: str
             <a href="https://support.microsoft.com/en-us/windows/experience/storage-filemanagement/common-file-name-extensions-in-windows">
               Microsoft: file extensions
             </a>
-            <a href="https://github.com/AurelioAvila/pc-tweaker-app/tree/master/src-tauri/src">
+            {/*
+  `HEAD` rather than a literal branch name: this link must resolve on the
+  default branch of wafinbl2021-eng/wafix, and that branch has not been chosen
+  yet. Guessing `master` or `main` would turn this into a 404 the first time
+  the guess was wrong; GitHub resolves HEAD for us.
+*/}
+<a href="https://github.com/wafinbl2021-eng/wafix/tree/HEAD/src-tauri/src">
               Inspect the tweak source on GitHub
             </a>
           </nav>

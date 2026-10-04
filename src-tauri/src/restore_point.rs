@@ -63,7 +63,7 @@ mod imp {
     pub fn create() -> Result<(), String> {
         // Fixed, compile-time description — see the module header for why no
         // program name is included.
-        const DESCRIPTION: &str = "Before system change (PC Tweaker)";
+        const DESCRIPTION: &str = "Before system change (Daltoon X)";
 
         let dll_name: Vec<u16> = "srclient.dll\0".encode_utf16().collect();
         // SAFETY: `dll_name` is a valid NUL-terminated UTF-16 string that

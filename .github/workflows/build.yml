@@ -36,7 +36,7 @@ jobs:
 
       # CI proves the source builds; it does not distribute unsigned installers.
       # Publisher and updater signing happen on the authorized release machine.
-      # The local manifest helper, stable aliases and WinGet have independent gates.
+      # The local manifest helper and stable aliases have independent gates.
       - name: Build without distributing verification artifacts
         shell: bash
         run: npm run tauri build -- --config '{"bundle":{"createUpdaterArtifacts":false}}'

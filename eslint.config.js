@@ -23,11 +23,24 @@ export default tseslint.config(
     // for real as each site is reworked (two are analyzer false positives on
     // async loaders; two are deliberate, commented reset/animation-sync
     // patterns). Never add new code that needs this.
+    //
+    // `applications.tsx` and `overlay.tsx` are here for the same reason as the
+    // four below them and were missing only by accident: both were split out of
+    // `App.tsx`/`overlay` carrying code that predates this config, and when the
+    // split happened this list was not extended to cover them. Nothing about
+    // those two sites is new — `applications.tsx` calls an async loader that
+    // sets state after its `await` (the false-positive shape above), and
+    // `overlay.tsx` reads the stored language once on mount, which is the
+    // deliberate, commented shape. Left off this list they were scored at the
+    // plugin default of `error`, so two inherited sites failed a gate that the
+    // four identical ones beside them passed.
     files: [
       "src/App.tsx",
+      "src/components/applications.tsx",
       "src/components/gaming.tsx",
       "src/components/maintenance.tsx",
       "src/components/startup.tsx",
+      "src/overlay.tsx",
     ],
     rules: {
       "react-hooks/set-state-in-effect": "warn",

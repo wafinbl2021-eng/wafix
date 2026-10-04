@@ -111,10 +111,10 @@ export function UninstallerPage() {
       <section className="mb-10 rounded-2xl border border-white/10 p-6">
         <h2 className="mb-3 text-2xl font-semibold text-[var(--fg)]">Release verification comes first</h2>
         <p className="leading-relaxed text-[var(--fg-dim)]">
-          The current Windows installers and application have verified publisher signatures and
-          trusted timestamps. The publisher is Aurelio Avila. Download the signed release above.
-          Code signing identifies the publisher; it does not guarantee that Windows will
-          never display a security warning.
+          The release does not yet carry a Windows Authenticode publisher signature, so Windows will
+          report an unknown publisher and may display a security warning. What you can verify today is
+          the SHA-256 checksum published with the release, and the update signature the app checks
+          before applying any update. Compare the checksum before installing.
         </p>
       </section>
 

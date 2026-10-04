@@ -122,10 +122,29 @@ pub struct InstallOutcome {
     /// it) rather than exiting with a code.
     pub exit_code: Option<i32>,
     pub success: bool,
+    /// Whether the bytes that ran were compared against a checksum the catalog
+    /// published.
+    ///
+    /// This is a fact about what happened, not a quality score. `false` means the
+    /// version published no digest: the download still went out over HTTPS, the
+    /// container header was still checked, and the installer still ran - but
+    /// nothing pinned those bytes to a value anyone recorded beforehand. Anything
+    /// reporting on the install must carry that distinction rather than implying
+    /// a check that did not happen.
+    ///
+    /// Set by the caller in `wafx::install_wafx_app`, which is the only place
+    /// that knows whether a digest was published. It is not derived here, because
+    /// this module never sees the catalog row.
+    pub verified: bool,
 }
 
-/// Runs a command produced by [`command_for`]. The caller must not call this
-/// until the file has passed SHA-256 verification.
+/// Runs a command produced by [`command_for`].
+///
+/// The caller must have already established that the file may run: the container
+/// header matches the declared type, and the digest matched the catalog's if the
+/// catalog published one. When it published none, the caller sets
+/// [`InstallOutcome::verified`] to `false` - this function has no way to know,
+/// and reports only what it observed about the process.
 #[cfg(windows)]
 pub fn run(command: &InstallerCommand) -> Result<InstallOutcome, String> {
     use std::os::windows::process::CommandExt;
@@ -145,6 +164,9 @@ pub fn run(command: &InstallerCommand) -> Result<InstallOutcome, String> {
     Ok(InstallOutcome {
         exit_code: status.code(),
         success: status.success(),
+        // A placeholder the caller replaces: this function never learns whether
+        // the catalog published a checksum.
+        verified: false,
     })
 }
 

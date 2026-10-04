@@ -35,7 +35,7 @@
   padding: 18px 12px 12px;
   overflow: hidden;
   background: var(--bg-raised);
-  border-right: 1px solid var(--border-subtle);
+  border-inline-end: 1px solid var(--border-subtle);
 }
 
 .desktop-refresh .workspace-navigation {
@@ -45,7 +45,11 @@
   min-width: 0;
   min-height: 0;
   gap: 0;
-  padding: 3px 4px 8px 3px;
+  /* Was `padding: 3px 4px 8px 3px`. The start side is the narrower one, so it is
+     stated as a logical pair: inline-start takes what `left` took, inline-end what
+     `right` took. */
+  padding-block: 3px 8px;
+  padding-inline: 3px 4px;
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior-y: contain;
@@ -105,10 +109,11 @@
 }
 
 /* Keep the selection mark inside the row so neither scroll clipping nor a
-   translated label can conceal the active destination. */
+   translated label can conceal the active destination. The mark sits on the
+   reading-start edge, which is the left in every language until `dir` says
+   otherwise — hence `inset-inline-start` and not `left`. */
 .desktop-refresh .workspace-sidebar .nav-item::before {
   inset-inline-start: 0;
-  left: 0;
   width: 2px;
   height: 16px;
   border-radius: 2px;
@@ -264,7 +269,7 @@
   min-width: 0;
 }
 
-.desktop-refresh .workspace-header > .ml-auto {
+.desktop-refresh .workspace-header > .ms-auto {
   flex: 0 1 216px;
   width: 216px;
   min-width: 164px;
@@ -294,7 +299,7 @@
   margin-top: 9px;
 }
 
-.desktop-refresh .workspace-header > .ml-auto > input {
+.desktop-refresh .workspace-header > .ms-auto > input {
   min-height: 37px;
   border-color: var(--border-subtle);
   border-radius: 10px;
@@ -302,11 +307,11 @@
   font-size: 12px;
 }
 
-.desktop-refresh .workspace-header > .ml-auto > input:hover {
+.desktop-refresh .workspace-header > .ms-auto > input:hover {
   border-color: var(--border-strong);
 }
 
-.desktop-refresh .workspace-header > .ml-auto > input:focus-visible {
+.desktop-refresh .workspace-header > .ms-auto > input:focus-visible {
   border-color: var(--focus);
   background: var(--surface-1);
 }
@@ -393,7 +398,7 @@
     flex-basis: 100%;
   }
 
-  .desktop-refresh .workspace-header > .ml-auto {
+  .desktop-refresh .workspace-header > .ms-auto {
     flex: 1 1 0%;
     width: auto;
     min-width: 0;
@@ -450,7 +455,7 @@
   }
 
   .desktop-refresh .workspace-commercial > button,
-  .desktop-refresh .workspace-header > .ml-auto > input {
+  .desktop-refresh .workspace-header > .ms-auto > input {
     border: 1px solid ButtonText;
   }
 }

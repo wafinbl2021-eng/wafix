@@ -240,7 +240,7 @@ impl Capture {
         return Err(if started == ERROR_ACCESS_DENIED {
             // Deliberately the whole explanation: "access denied" on its own
             // invites the reader to think something is broken.
-            "Measuring frame rate needs a system trace session, which Windows only grants to an administrator. Restart PC Tweaker as administrator to use it.".to_string()
+            "Measuring frame rate needs a system trace session, which Windows only grants to an administrator. Restart Daltoon X as administrator to use it.".to_string()
         } else {
             format!("Windows refused to start the trace session (error {started}).")
         });

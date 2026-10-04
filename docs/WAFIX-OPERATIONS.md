@@ -1,11 +1,11 @@
-# Wafi X operations
+# Daltoon X operations
 
-How the Wafi X catalog API gets deployed, how its first admin is created, how
+How the Daltoon X catalog API gets deployed, how its first admin is created, how
 catalog entries are published, and how updates reach installed copies of the
 app. Everything here is deliberately manual and credential-gated; nothing in
 this document runs unattended.
 
-Wafi X is a rebrand layered onto the existing desktop app. The catalog API lives
+Daltoon X is a rebrand layered onto the existing desktop app. The catalog API lives
 in [`wafx-api/`](../wafx-api/README.md) and is completely separate from
 [`backend/`](../backend), which owns PC Tweaker licensing and is untouched.
 
@@ -13,27 +13,30 @@ in [`wafx-api/`](../wafx-api/README.md) and is completely separate from
 
 | Area | State |
 | --- | --- |
-| Icon / branding | Done. Wafi X emblem ships as the app, EXE, shortcut and installer icon. |
-| API source | Done. Worker, admin panel, schema, migrations, 125 tests. |
-| API deployment | **Not deployed.** Needs a Cloudflare account. See below. |
-| D1 migrations | Written, verified against a local database. **Not applied remotely.** |
-| Admin account | Script ready. **Not bootstrapped** - no live Worker to call. |
-| Catalog data | **Empty.** No apps published. |
+| Icon / branding | Done. Daltoon X emblem ships as the app, EXE, shortcut and installer icon. |
+| API source | Done. Worker, admin panel, schema, migrations, 238 tests across 44 suites, 0 failures. |
+| API deployment | **Deployed and live** at `https://wafx-api.wafinbl2021.workers.dev`. `GET /api/health` answers 200 and `GET /admin` serves the panel. |
+| D1 migrations | `0001` is applied - the deployed Worker reads both `apps` and `admins`. **The remote migration ledger is UNKNOWN**: whether `0002` and `0003` have been applied is not established, and neither may be assumed. Check before touching the database: `npx wrangler d1 migrations list wafx --remote` |
+| Accounts / Pro | Source written and tested, **not deployed**. Every `/api/account/*` and `/api/license` route answers 404. `0003_accounts.sql` is required by that source. |
+| Admin account | **Bootstrapped.** An administrator already exists: `POST /api/admin/bootstrap` answers 409 `bootstrap_unavailable`, which that route raises only while the admins table is empty. The route is permanently closed, so `BOOTSTRAP_TOKEN` is no longer read. |
+| Catalog data | **1 live entry** (7-Zip), agreed on by `GET /api/apps` and `GET /api/health`. **Provenance is not verified locally** - those strings appear nowhere in this repository or its history, so the row was entered by hand through the panel. |
 | Self-update | Already wired to GitHub Releases. Never exercised. |
-| Updater signing | Key handling in place. **The private key for the committed pubkey is not on this machine.** |
+| Updater signing | Key handling in place. **The matching updater private key is present locally, outside the repository, at `C:\Users\Wafi\.tauri\signers\daltoon-x-updater.key`.** It must stay there and out of version control. |
 | Release automation | Verification and alias workflows exist. Builds are unsigned in CI. |
 
 ## Deploying the API
 
 Two values in [`wafx-api/wrangler.toml`](../wafx-api/wrangler.toml) cannot be
-known in advance and are deliberately left as placeholders:
+known in advance, which is why they began life as placeholders
+(`REPLACE_WITH_THE_ID_WRANGLER_PRINTED` and `YOUR-SUBS`). Both are filled in
+now, and the Worker is deployed:
 
 ```
-database_id = "REPLACE_WITH_THE_ID_WRANGLER_PRINTED"
-PUBLIC_ORIGIN = "https://wafx-api.YOUR-SUBSERNAME.workers.dev"
+database_id = "5435c3c1-2155-45fd-b70c-93d6e1657fcb"
+PUBLIC_ORIGIN = "https://wafx-api.wafinbl2021.workers.dev"
 ```
 
-Create the database and fill both in:
+The database was created once, by hand:
 
 ```
 cd wafx-api
@@ -41,7 +44,8 @@ npx wrangler d1 create wafx          # paste the printed id into wrangler.toml
 ```
 
 `wafx-api-deploy.yml` refuses to run while either placeholder is present,
-rather than failing later as a confusing 404.
+rather than failing later as a confusing 404. That guard is the reason the
+deploy carrying these real values succeeded.
 
 Then either use the workflow (**Deploy wafx-api**, manual dispatch, with an
 optional migration step and a `--dry-run` mode) or run it directly:
@@ -56,7 +60,26 @@ It needs `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`. In CI those are
 repository secrets; locally `npx wrangler login` is enough. The token needs
 D1 and Workers edit permissions and nothing else.
 
+### `ACCOUNT_ORIGIN` is unset on purpose - do not set it
+
+`ACCOUNT_ORIGIN` and `ACCOUNT_ORIGINS` are both unset, which makes the account
+origin allowlist `[PUBLIC_ORIGIN]`, the API's own origin.
+
+**That is correct. Leave it alone.** The Rust desktop client sends an `Origin`
+header equal to the API base origin on every account request - see `origin_of`
+in `src-tauri/src/account.rs`, which deliberately returns the base URL with its
+trailing slash trimmed. `requireAccountOrigin` refuses a mutating account request
+whose `Origin` is absent or off the allowlist, so the allowlist has to contain
+the API's own origin for login, register and logout to work at all. Pointing
+`ACCOUNT_ORIGIN` anywhere else rejects every one of them.
+
 ## Creating the first admin
+
+**This is already done - do not repeat it.** The production admins table is not
+empty, so `POST /api/admin/bootstrap` answers 409 `bootstrap_unavailable` and
+that route is permanently closed. `BOOTSTRAP_TOKEN` is therefore never read and
+is no longer worth setting. Sign in to the panel instead. The sequence below is
+kept for reference.
 
 The admin password is never stored, never sent to the Worker and never
 committed. The panel derives a PBKDF2-SHA256 verifier in the browser and the
@@ -118,7 +141,7 @@ versioned URL per release.
 Updates already point at GitHub Releases:
 
 ```
-https://github.com/AurelioAvila/pc-tweaker-app/releases/latest/download/latest.json
+https://github.com/wafinbl2021-eng/wafix/releases/latest/download/latest.json
 ```
 
 `src-tauri/tauri.conf.json` sets `createUpdaterArtifacts: true` and carries a
@@ -173,7 +196,10 @@ and none was invented: the icons are the artwork on its own dark background.
 
 - **R2.** No bucket. Installer binaries are external HTTPS links. Enabling it
   later is a binding plus two column values, no migration and no client change.
-- **Telemetry, device registration, remote commands.** The API serves a catalog
-  and nothing else. The Worker does not accept device identifiers and has no
-  endpoint that can act on a client.
+- **Telemetry, device registration, remote commands.** The deployed API serves a
+  catalog and nothing else. The Worker does not accept device identifiers and has
+  no endpoint that can act on a client. Account and Pro source does exist in
+  `wafx-api/src/`, undeployed, and is still device-free - a test in
+  `src-tauri/src/license.rs` fails if a machine id, hardware id or install id is
+  introduced.
 - **Phase 4.** Not started.

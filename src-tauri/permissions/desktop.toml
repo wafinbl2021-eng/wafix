@@ -57,9 +57,16 @@ permissions = [
     "allow-compare-lifetime-profiles",
     "allow-preview-lifetime-report",
     "allow-save-lifetime-report",
-    "allow-save-license",
+    "allow-account-license",
     "allow-license-status",
     "allow-clear-license",
+    # Accounts. Granted only to the main window: the HUD and the untrusted
+    # window have no business asking who is signed in, and the answer is a
+    # user's email address. See src-tauri/src/account.rs.
+    "allow-account-me",
+    "allow-account-login",
+    "allow-account-register",
+    "allow-account-logout",
     "allow-list-tweaks",
     "allow-apply-tweak",
     "allow-apply-tweaks",
@@ -100,6 +107,8 @@ permissions = [
     "allow-gpu-power-info",
     "allow-set-gpu-profile",
     "allow-open-windows-update",
+    "allow-luatools-status",
+    "allow-launch-luatools",
     "allow-reboot-pending",
     "allow-reboot-now",
     "allow-search-driver-updates",

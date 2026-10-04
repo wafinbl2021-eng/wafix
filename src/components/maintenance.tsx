@@ -2,8 +2,7 @@ import "./tool-surfaces.css";
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { open as openFolderDialog } from "@tauri-apps/plugin-dialog";
-import { openUrl } from "@tauri-apps/plugin-opener";
-import { format, Strings } from "../i18n";
+import { format, formatCount, Strings } from "../i18n";
 import { formatBytes, LARGE_FILE_THRESHOLD_BYTES, sha1Hex } from "../lib";
 import { CATEGORY_STYLE } from "../categories";
 import {
@@ -23,8 +22,6 @@ import {
 import { DriveIcon, GlobeIcon, HeartPulseIcon, TrashIcon } from "./icons";
 import { ProBadge, ShieldBadge, SoonBadge } from "./ui";
 import { SecureDefragCard } from "./pro";
-import uninstallerIcon from "../assets/uninstaller-icon.png";
-import redaxaMark from "../assets/redaxa-mark.svg";
 
 export function IpMaskCard({ s, onExplain }: { s: Strings; onExplain: () => void }) {
   return (
@@ -116,8 +113,7 @@ export function DuplicateFinder({
       const result = await invoke<CleanupResult>("delete_files", { paths: Array.from(selected) });
       onToast(
         "success",
-        format(s.duplicateFinder.deletedToast, {
-          count: result.deleted_count,
+        formatCount(s.duplicateFinder.deletedToast, result.deleted_count, {
           freed: formatBytes(result.freed_bytes),
         }),
       );
@@ -165,8 +161,7 @@ export function DuplicateFinder({
           {groups.map((g, gi) => (
             <div key={gi} className="rounded-xl bg-black/20 p-3">
               <p className="mb-2 text-xs font-medium text-ink-3">
-                {format(s.duplicateFinder.copies, {
-                  count: g.paths.length,
+                {formatCount(s.duplicateFinder.copies, g.paths.length, {
                   size: formatBytes(g.size),
                 })}
               </p>
@@ -193,7 +188,7 @@ export function DuplicateFinder({
           >
             {deleting
               ? s.duplicateFinder.deleting
-              : format(s.duplicateFinder.moveSelected, { count: selected.size })}
+              : formatCount(s.duplicateFinder.moveSelected, selected.size)}
           </button>
         </div>
       )}
@@ -397,125 +392,6 @@ export function BrowserCleanupCard({
   );
 }
 
-/** Cross-promo for the sibling product. It lives at the end of the cleanup
- *  section deliberately: someone deleting temp files and duplicates is one
- *  step away from wanting whole programs gone — that is the uninstaller's
- *  job.
- *
- *  The button used to open the repository and stop there, which left the
- *  person to find the right asset among six on a releases page. It now offers
- *  the installer itself, behind a confirmation that says what is about to be
- *  downloaded and warns about SmartScreen before it appears rather than
- *  after — the uninstaller is not code-signed yet, and an unexplained blue
- *  warning box is how a download gets abandoned. Opening the page is still
- *  there for anyone who wants to look first. */
-const UNINSTALLER_PAGE_URL = "https://github.com/AurelioAvila/pc-tweaker-uninstaller";
-/** Version-less on purpose: GitHub resolves `releases/latest/download/<name>`
- *  only for an exact filename, so this points at the stable-named copy the
- *  uninstaller's release script publishes alongside the versioned one. A
- *  versioned URL here would break on that product's next release. */
-const UNINSTALLER_DOWNLOAD_URL =
-  "https://github.com/AurelioAvila/pc-tweaker-uninstaller/releases/latest/download/PCTweakerUninstaller-Setup.exe";
-
-export function UninstallerPromoCard({ s }: { s: Strings }) {
-  const [asking, setAsking] = useState(false);
-
-  function choose(url: string) {
-    setAsking(false);
-    void openUrl(url);
-  }
-
-  return (
-    <>
-      <li className="animate-card relative overflow-hidden rounded-2xl border border-fuchsia-400/20 bg-gradient-to-r from-violet-500/10 to-fuchsia-500/10 p-4 shadow-lg shadow-black/20">
-        <div className="flex items-center gap-4">
-          <img
-            src={uninstallerIcon}
-            alt=""
-            className="h-11 w-11 shrink-0 rounded-xl ring-1 ring-fuchsia-400/30"
-          />
-          <div className="min-w-0 flex-1">
-            <h2 className="font-semibold text-ink">{s.uninstallerPromo.title}</h2>
-            <p className="mt-0.5 text-sm text-ink-3">{s.uninstallerPromo.description}</p>
-          </div>
-          {/* Bright fill, near-black label, and a glow. The previous pairing put
-              fuchsia-950 text on a fuchsia-500 fill — dark ink on a mid tone,
-              which muddied into grey against this card's own violet gradient
-              and read as a disabled control rather than the primary action. */}
-          <button
-            onClick={() => setAsking(true)}
-            className="shrink-0 rounded-xl bg-fuchsia-400 px-4 py-2 text-sm font-bold text-slate-900 shadow-lg shadow-fuchsia-500/30 transition hover:-translate-y-px hover:brightness-110"
-          >
-            {s.uninstallerPromo.button}
-          </button>
-        </div>
-      </li>
-
-      {asking && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-6 backdrop-blur-sm">
-          <div className="animate-card w-full max-w-md rounded-2xl border border-line bg-slate-900 p-6 shadow-2xl">
-            <h3 className="text-lg font-bold text-ink">{s.uninstallerPromo.confirmTitle}</h3>
-            <p className="mt-2 text-sm leading-relaxed text-ink-3">
-              {s.uninstallerPromo.confirmBody}
-            </p>
-            <p className="mt-3 text-[12.5px] leading-relaxed text-amber-200/80">
-              {s.uninstallerPromo.confirmUnsigned}
-            </p>
-
-            <button
-              onClick={() => choose(UNINSTALLER_DOWNLOAD_URL)}
-              className="tool-primary-action mt-5 w-full"
-            >
-              {s.uninstallerPromo.confirmDownload}
-            </button>
-            <button
-              onClick={() => choose(UNINSTALLER_PAGE_URL)}
-              className="tool-secondary-action mt-2 w-full"
-            >
-              {s.uninstallerPromo.confirmOpenPage}
-            </button>
-            <button onClick={() => setAsking(false)} className="tool-secondary-action mt-2 w-full">
-              {s.uninstallerPromo.cancel}
-            </button>
-          </div>
-        </div>
-      )}
-    </>
-  );
-}
-
-/** Cross-promo for Redaxa, shown on the Privacy screen: someone who
- *  just turned off telemetry and ad tracking cares about what leaves their
- *  machine — and the biggest modern leak is what gets pasted into AI chats.
- *  Static card, no IPC; the web app works instantly, no install needed. */
-export function RedaxaPromoCard({ s }: { s: Strings }) {
-  function openPage() {
-    void openUrl("https://promptshield-beta.vercel.app");
-  }
-
-  return (
-    <div className="animate-card relative mb-6 overflow-hidden rounded-2xl border border-violet-400/20 bg-gradient-to-r from-violet-500/10 to-indigo-500/5 p-4 shadow-lg shadow-black/20">
-      <div className="flex items-center gap-4">
-        <img
-          src={redaxaMark}
-          alt=""
-          className="h-11 w-11 shrink-0 rounded-xl ring-1 ring-violet-400/30"
-        />
-        <div className="min-w-0 flex-1">
-          <h2 className="font-semibold text-ink">{s.redaxaPromo.title}</h2>
-          <p className="mt-0.5 text-sm text-ink-3">{s.redaxaPromo.description}</p>
-        </div>
-        <button
-          onClick={openPage}
-          className="shrink-0 rounded-xl bg-violet-400 px-4 py-2 text-sm font-bold text-slate-900 shadow-lg shadow-violet-500/30 transition hover:-translate-y-px hover:brightness-110"
-        >
-          {s.redaxaPromo.button}
-        </button>
-      </div>
-    </div>
-  );
-}
-
 /** Same scan/select/delete shape as DuplicateFinder, but by size threshold
  *  instead of content hash — a different, complementary way to find space to
  *  reclaim (a single 4 GB video has no duplicate to find, but is easy to spot
@@ -580,8 +456,7 @@ export function LargeFileFinder({
       const result = await invoke<CleanupResult>("delete_files", { paths: Array.from(selected) });
       onToast(
         "success",
-        format(s.largeFiles.deletedToast, {
-          count: result.deleted_count,
+        formatCount(s.largeFiles.deletedToast, result.deleted_count, {
           freed: formatBytes(result.freed_bytes),
         }),
       );
@@ -615,7 +490,7 @@ export function LargeFileFinder({
       {files && files.length > 0 && (
         <div className="mt-4 border-t border-line pt-4">
           <p className="mb-2 text-xs font-medium text-ink-3">
-            {format(s.largeFiles.foundCount, { count: files.length })}
+            {formatCount(s.largeFiles.foundCount, files.length)}
           </p>
           <div className="max-h-72 space-y-0.5 overflow-y-auto rounded-xl bg-black/20 p-3">
             {files.map((f) => (
@@ -641,7 +516,7 @@ export function LargeFileFinder({
           >
             {deleting
               ? s.largeFiles.deleting
-              : format(s.largeFiles.moveSelected, { count: selected.size })}
+              : formatCount(s.largeFiles.moveSelected, selected.size)}
           </button>
         </div>
       )}
@@ -959,7 +834,7 @@ export function PasswordBreachCheck({ s }: { s: Strings }) {
               {result.kind === "safe"
                 ? s.passwordCheck.safe
                 : result.kind === "breached"
-                  ? format(s.passwordCheck.breached, { count: result.count ?? 0 })
+                  ? formatCount(s.passwordCheck.breached, result.count ?? 0)
                   : s.passwordCheck.error}
             </p>
           )}
@@ -1078,8 +953,7 @@ export function CleanupConfirmModal({
               <p className="mt-2 text-[11px] text-ink-3">{s.cleanupConfirm.previewTruncated}</p>
             )}
             <p className="mt-2 text-[12px] font-medium text-ink-3">
-              {format(s.cleanupConfirm.selectedSummary, {
-                count: selected.length,
+              {formatCount(s.cleanupConfirm.selectedSummary, selected.length, {
                 size: formatBytes(allSelected ? preview.total_bytes : selectedBytes),
               })}
             </p>

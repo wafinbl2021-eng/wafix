@@ -165,3 +165,9 @@ signing.key.pub
 # The signing wrapper refuses a key stored inside the working tree, but keep the
 # encrypted-key form out of history too.
 *.minisig
+
+# Recovery scratch from rebuilding `src-tauri/tauri.conf.json` after it was
+# truncated in place. The backup is kept deliberately until the rebuilt config
+# is accepted, but it must never reach a commit: Tauri does not read it, so a
+# tracked copy would only ever be a stale second source of release identity.
+src-tauri/tauri.conf.json.corrupted-backup

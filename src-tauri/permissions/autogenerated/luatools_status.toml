@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-luatools-status"
+description = "Enables the luatools_status command without any pre-configured scope."
+commands.allow = ["luatools_status"]
+
+[[permission]]
+identifier = "deny-luatools-status"
+description = "Denies the luatools_status command without any pre-configured scope."
+commands.deny = ["luatools_status"]

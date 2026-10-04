@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import { openUrl } from "@tauri-apps/plugin-opener";
 import { LANGUAGES, Lang, Strings } from "../i18n";
 import { THEMES, ThemeName } from "../theme";
 import {
@@ -10,11 +9,50 @@ import {
   removeAvatar,
   writeAvatar,
 } from "../lib";
+import { validateCredentials, validateRegistration } from "../account-client";
 import { AuthState } from "../types";
 import { CheckIcon, CrownIcon } from "./icons";
 import { Avatar } from "./ui";
 import "./account-menu.css";
 
+/**
+ * Validation codes from `validateCredentials` / `validateRegistration`, in the
+ * user's language.
+ *
+ * A map rather than returning a finished string so the checks can be unit-tested
+ * without an i18n bundle, and so `account-client.ts` stays free of presentation.
+ * A code with no entry falls through to being shown verbatim, which cannot
+ * happen today — the tests below pin that.
+ */
+const problems: Record<string, (s: Strings) => string> = {
+  emailRequired: (s) => s.auth.emailRequired,
+  emailInvalid: (s) => s.auth.emailInvalid,
+  passwordRequired: (s) => s.auth.passwordRequired,
+  passwordTooShort: (s) => s.auth.passwordTooShort,
+  passwordMismatch: (s) => s.auth.passwordMismatch,
+};
+
+/**
+ * The signed-out sign-in / registration form, and the signed-in summary.
+ *
+ * Three fields when registering (email, password, confirm) and two when signing
+ * in. Deliberately absent, and why:
+ *
+ *   - **Name and date of birth.** The API takes an address and a verifier and
+ *     nothing else. `accounts` in `migrations/0003_accounts.sql` has no column
+ *     for a name, so asking for one would be collecting data nothing stores.
+ *   - **Forgot password and resend verification.** Both need an email sender,
+ *     and Daltoon X 1.0.0 has none: no verification step exists, so there is nothing
+ *     to resend, and password recovery is deferred to 1.1. Showing a link that
+ *     cannot work would be worse than not showing it.
+ *   - **"Remember me".** It used to choose between `localStorage` and
+ *     `sessionStorage`. The session now lives in a DPAPI-encrypted file owned by
+ *     Rust, so there is nothing for the frontend to remember or forget.
+ *
+ * The API answers a bad sign-in, an unknown address and a disabled account
+ * identically, and this form shows that answer verbatim. Anything else here would
+ * rebuild the enumeration channel the API exists to remove.
+ */
 export function AuthSection({
   s,
   auth,
@@ -23,8 +61,6 @@ export function AuthSection({
   onRemovePhoto,
   onAuthenticate,
   onLogout,
-  onResendVerification,
-  onForgotPassword,
 }: {
   s: Strings;
   auth: AuthState;
@@ -32,29 +68,30 @@ export function AuthSection({
   avatar?: string | null;
   onChangePhoto?: () => void;
   onRemovePhoto?: () => void | Promise<void>;
-  onAuthenticate: (
-    mode: "login" | "register",
-    email: string,
-    password: string,
-    registerDetails?: { firstName: string; lastName: string; dateOfBirth: string },
-    remember?: boolean,
-  ) => Promise<void>;
+  onAuthenticate: (mode: "login" | "register", email: string, password: string) => Promise<void>;
   onLogout: () => void;
-  onResendVerification: () => Promise<void>;
-  onForgotPassword: (email: string) => Promise<void>;
 }) {
-  const [mode, setMode] = useState<"login" | "register" | "forgot">("login");
+  const [mode, setMode] = useState<"login" | "register">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [dateOfBirth, setDateOfBirth] = useState("");
+  const [confirm, setConfirm] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [info, setInfo] = useState<string | null>(null);
   const [working, setWorking] = useState(false);
-  // Defaults on, like every desktop app people already use. Off means the
-  // session lives only until the app closes.
-  const [remember, setRemember] = useState(true);
+
+  // The session is still being restored. Rendering the form now would show a
+  // signed-out state that is about to become a signed-in one, which is a flash
+  // of the wrong screen on every launch.
+  if (auth.status === "loading") {
+    return (
+      <div className="flex items-center gap-2 border-b border-line p-4 text-xs text-ink-3">
+        <span
+          aria-hidden
+          className="h-3 w-3 animate-spin rounded-full border-2 border-line border-t-[var(--app-accent)]"
+        />
+        {s.auth.checkingSession}
+      </div>
+    );
+  }
 
   if (auth.status === "authenticated") {
     // "Logged in as name@example.com" as a bare line of text reads like a
@@ -112,21 +149,6 @@ export function AuthSection({
           </div>
         </div>
 
-        {!auth.emailVerified && (
-          <button
-            onClick={() => {
-              setError(null);
-              setInfo(null);
-              onResendVerification()
-                .then(() => setInfo(s.auth.verificationSent))
-                .catch((err) => setError(String(err instanceof Error ? err.message : err)));
-            }}
-            className="mt-2 w-full rounded-lg bg-amber-400/10 px-2 py-1.5 text-xs font-semibold text-amber-300 transition-colors hover:bg-amber-400/20"
-          >
-            {s.auth.resendVerification}
-          </button>
-        )}
-        {info && <p className="mt-2 text-xs text-emerald-400">{info}</p>}
         {error && <p className="mt-2 text-xs text-red-400">{error}</p>}
         {avatar && (
           <button
@@ -146,96 +168,39 @@ export function AuthSection({
     );
   }
 
-  if (mode === "forgot") {
-    return (
-      <div className="border-b border-line p-4">
-        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-3">
-          {s.menu.account}
-        </p>
-        <form
-          onSubmit={async (e) => {
-            e.preventDefault();
-            setError(null);
-            setInfo(null);
-            if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-              setError(s.auth.emailInvalid);
-              return;
-            }
-            setWorking(true);
-            try {
-              await onForgotPassword(email);
-              setInfo(s.auth.forgotPasswordSent);
-            } catch (err) {
-              setError(String(err instanceof Error ? err.message : err));
-            } finally {
-              setWorking(false);
-            }
-          }}
-          className="flex flex-col gap-2"
-        >
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder={s.auth.email}
-            className="rounded-lg border border-line bg-surface-2 px-3 py-1.5 text-sm text-ink outline-none placeholder:text-ink-3 focus:border-[var(--app-accent)]"
-          />
-          {info && <p className="text-xs text-emerald-400">{info}</p>}
-          {error && <p className="text-xs text-red-400">{error}</p>}
-          <button
-            type="submit"
-            disabled={working}
-            className="rounded-lg bg-[var(--app-accent)] px-3 py-1.5 text-sm font-semibold text-white disabled:opacity-60"
-          >
-            {working ? s.auth.working : s.auth.forgotPasswordButton}
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setMode("login");
-              setError(null);
-              setInfo(null);
-            }}
-            className="text-xs text-ink-3 hover:text-ink-2"
-          >
-            {s.auth.backToLogin}
-          </button>
-        </form>
-      </div>
-    );
-  }
-
+  /**
+   * Client-side checks, then hand off.
+   *
+   * These are conveniences, not security. The API never sees a password — only a
+   * stretched verifier — so it cannot judge one, and neither can this. The point
+   * is to catch an empty field or two mistyped passwords without a round trip.
+   */
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
 
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setError(s.auth.emailInvalid);
-      return;
-    }
-    if (password.length < 8) {
-      setError(s.auth.passwordTooShort);
-      return;
-    }
-    if (mode === "register" && (!firstName.trim() || !lastName.trim() || !dateOfBirth)) {
-      setError(s.auth.registerDetailsRequired);
+    const problem =
+      mode === "register"
+        ? validateRegistration(email, password, confirm)
+        : validateCredentials(email, password);
+    if (problem) {
+      const translate = problems[problem];
+      // An unmapped code would be a new validator code with no string. Showing
+      // the raw code is ugly but honest; a test below asserts every code is
+      // mapped, so this branch exists only as a guard.
+      setError(translate ? translate(s) : problem);
       return;
     }
 
     setWorking(true);
     try {
-      // Safe: the "forgot" mode returns its own JSX earlier above, so this
-      // code path only ever runs for "login" | "register".
-      await onAuthenticate(
-        mode as "login" | "register",
-        email,
-        password,
-        mode === "register" ? { firstName, lastName, dateOfBirth } : undefined,
-        // Registering always remembers: someone who just created an account
-        // has no reason to be signed out the moment they close the window.
-        mode === "register" ? true : remember,
-      );
+      // No `remember`, and no name: the session is Rust's to keep and the API
+      // stores no name.
+      await onAuthenticate(mode, email.trim(), password);
     } catch (err) {
+      // Whatever the API said, shown as-is. For a bad sign-in that is the
+      // deliberately vague "Invalid email or password", and paraphrasing it here
+      // would risk saying something more specific than the server was willing to.
       setError(String(err instanceof Error ? err.message : err));
     } finally {
       setWorking(false);
@@ -248,32 +213,9 @@ export function AuthSection({
         {s.menu.account}
       </p>
       <form onSubmit={submit} className="flex flex-col gap-2">
-        {mode === "register" && (
-          <>
-            <input
-              type="text"
-              value={firstName}
-              onChange={(e) => setFirstName(e.target.value)}
-              placeholder={s.auth.firstName}
-              className="rounded-lg border border-line bg-surface-2 px-3 py-1.5 text-sm text-ink outline-none placeholder:text-ink-3 focus:border-[var(--app-accent)]"
-            />
-            <input
-              type="text"
-              value={lastName}
-              onChange={(e) => setLastName(e.target.value)}
-              placeholder={s.auth.lastName}
-              className="rounded-lg border border-line bg-surface-2 px-3 py-1.5 text-sm text-ink outline-none placeholder:text-ink-3 focus:border-[var(--app-accent)]"
-            />
-            <input
-              type="date"
-              value={dateOfBirth}
-              onChange={(e) => setDateOfBirth(e.target.value)}
-              className="rounded-lg border border-line bg-surface-2 px-3 py-1.5 text-sm text-ink outline-none placeholder:text-ink-3 focus:border-[var(--app-accent)]"
-            />
-          </>
-        )}
         <input
           type="email"
+          autoComplete="username"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder={s.auth.email}
@@ -281,22 +223,23 @@ export function AuthSection({
         />
         <input
           type="password"
+          autoComplete={mode === "login" ? "current-password" : "new-password"}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           placeholder={s.auth.password}
           className="rounded-lg border border-line bg-surface-2 px-3 py-1.5 text-sm text-ink outline-none placeholder:text-ink-3 focus:border-[var(--app-accent)]"
         />
-        {mode === "login" && (
-          <label className="flex cursor-pointer items-center gap-2 text-xs text-ink-3 select-none">
-            <input
-              type="checkbox"
-              checked={remember}
-              onChange={(e) => setRemember(e.target.checked)}
-              className="h-3.5 w-3.5 accent-[var(--app-accent)]"
-            />
-            {s.auth.rememberMe}
-          </label>
+        {mode === "register" && (
+          <input
+            type="password"
+            autoComplete="new-password"
+            value={confirm}
+            onChange={(e) => setConfirm(e.target.value)}
+            placeholder={s.auth.confirmPassword}
+            className="rounded-lg border border-line bg-surface-2 px-3 py-1.5 text-sm text-ink outline-none placeholder:text-ink-3 focus:border-[var(--app-accent)]"
+          />
         )}
+        {mode === "register" && <p className="text-[11px] text-ink-3">{s.auth.passwordHint}</p>}
         {error && <p className="text-xs text-red-400">{error}</p>}
         <button
           type="submit"
@@ -305,22 +248,16 @@ export function AuthSection({
         >
           {working ? s.auth.working : mode === "login" ? s.auth.loginButton : s.auth.registerButton}
         </button>
-        {mode === "login" && (
-          <button
-            type="button"
-            onClick={() => {
-              setMode("forgot");
-              setError(null);
-            }}
-            className="text-xs text-ink-3 hover:text-ink-2"
-          >
-            {s.auth.forgotPasswordLink}
-          </button>
-        )}
         <button
           type="button"
           onClick={() => {
+            // The password fields are cleared on the way across. Switching
+            // between sign-in and registration reuses this component, and leaving
+            // a typed password sitting in state after a mode change is the kind
+            // of thing that ends up in a screenshot.
             setMode((m) => (m === "login" ? "register" : "login"));
+            setPassword("");
+            setConfirm("");
             setError(null);
           }}
           className="text-xs text-ink-3 hover:text-ink-2"
@@ -343,8 +280,6 @@ export function AccountMenu({
   onOpenChange,
   onAuthenticate,
   onLogout,
-  onResendVerification,
-  onForgotPassword,
   onUpgrade,
   onViewPlan,
   pushToast,
@@ -360,16 +295,8 @@ export function AccountMenu({
    *  so every other existing call site keeps working unchanged. */
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
-  onAuthenticate: (
-    mode: "login" | "register",
-    email: string,
-    password: string,
-    registerDetails?: { firstName: string; lastName: string; dateOfBirth: string },
-    remember?: boolean,
-  ) => Promise<void>;
+  onAuthenticate: (mode: "login" | "register", email: string, password: string) => Promise<void>;
   onLogout: () => void;
-  onResendVerification: () => Promise<void>;
-  onForgotPassword: (email: string) => Promise<void>;
   onUpgrade: () => void;
   /** Opens the plans screen. Same destination for both tiers: a Free
    *  account is comparing, a Pro account is checking what it pays for. */
@@ -507,8 +434,6 @@ export function AccountMenu({
               onRemovePhoto={removePhoto}
               onAuthenticate={onAuthenticate}
               onLogout={onLogout}
-              onResendVerification={onResendVerification}
-              onForgotPassword={onForgotPassword}
             />
             {/* The webview's own file input: no plugin, no permissions — the
                 browser dialog hands us the bytes and they stay local. */}
@@ -621,8 +546,8 @@ export function AccountMenu({
                   <button
                     key={t.code}
                     onClick={() => setTheme(t.code)}
-                    title={t.label}
-                    aria-label={t.label}
+                    title={s.themeLabels[t.code]}
+                    aria-label={s.themeLabels[t.code]}
                     aria-pressed={theme === t.code}
                     className="account-theme"
                     style={{ "--swatch": t.swatch } as React.CSSProperties}
@@ -666,21 +591,15 @@ export function AccountMenu({
               <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-3">
                 {s.menu.support}
               </p>
-              <button
-                onClick={() => void openUrl("https://pctweaker.app/support")}
-                className="mt-1.5 flex w-full items-center justify-between rounded-lg bg-surface-2 px-2.5 py-1.5 text-left text-[13px] font-medium text-ink-2 transition-colors hover:bg-surface-hover hover:text-ink"
-              >
-                {s.menu.reportIssue}
-                <svg viewBox="0 0 24 24" fill="none" className="h-3.5 w-3.5 shrink-0 text-ink-3">
-                  <path
-                    d="M9 5h10v10M19 5 5 19"
-                    stroke="currentColor"
-                    strokeWidth="1.8"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </button>
+              {/* There is no Daltoon X support destination yet, and this row does
+                  not pretend otherwise. The button it replaced pointed at PC
+                  Tweaker's support page, which is not a place to send a Daltoon X
+                  user; inventing a replacement domain is not a call to make
+                  here. Phase 8 gives this a real target — at which point this
+                  text and a button both come back. */}
+              <p className="mt-1.5 rounded-lg bg-surface-2 px-2.5 py-2 text-[12px] leading-relaxed text-ink-3">
+                {s.menu.supportUnavailable}
+              </p>
             </div>
 
             <div className="p-3">

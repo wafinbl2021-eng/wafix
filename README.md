@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="src-tauri/icons/128x128@2x.png" width="112" alt="PC Tweaker logo">
+  <img src="src-tauri/icons/128x128@2x.png" width="112" alt="Daltoon X logo">
 </p>
 
-<h1 align="center">PC Tweaker — Windows Tuning, Privacy and Maintenance</h1>
+<h1 align="center">Daltoon X — Windows Tuning, Privacy and Maintenance</h1>
 
 <p align="center"><strong>Tune Windows with the changes in plain sight.</strong><br>Gaming, privacy and maintenance controls, with restore tools for supported settings.</p>
 
@@ -13,47 +13,42 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/AurelioAvila/pc-tweaker-app/releases"><img src="https://img.shields.io/github/v/release/AurelioAvila/pc-tweaker-app" alt="Latest release"></a>
-  <a href="https://github.com/microsoft/winget-pkgs/tree/master/manifests/a/AurelioAvila/PCTweaker"><img src="https://img.shields.io/winget/v/AurelioAvila.PCTweaker?label=WinGet&color=0078D4" alt="Latest version available in WinGet"></a>
-  <a href="https://github.com/AurelioAvila/pc-tweaker-app/releases"><img src="https://img.shields.io/github/downloads/AurelioAvila/pc-tweaker-app/total?label=GitHub%20asset%20downloads" alt="GitHub release asset download events"></a>
+  <a href="https://github.com/wafinbl2021-eng/wafix/releases"><img src="https://img.shields.io/github/v/release/wafinbl2021-eng/wafix" alt="Latest release"></a>
+  <a href="https://github.com/wafinbl2021-eng/wafix/releases"><img src="https://img.shields.io/github/downloads/wafinbl2021-eng/wafix/total?label=GitHub%20asset%20downloads" alt="GitHub release asset download events"></a>
   <img src="https://img.shields.io/badge/platform-Windows%2010%2F11%20x64-0078D4" alt="Windows 10 and 11 x64">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-proprietary-6B7280" alt="Source available under a proprietary license"></a>
 </p>
 
-**[Download Free for Windows](https://github.com/AurelioAvila/pc-tweaker-app/releases/latest)** · **[Microsoft Store](https://apps.microsoft.com/detail/9nh3c6dt1g87)** · [Website](https://pctweaker.app/) · [Support](https://pctweaker.app/support/) · [Release notes](CHANGELOG.md)
+**[Download Free for Windows](https://github.com/wafinbl2021-eng/wafix/releases/latest)** · **[Microsoft Store](https://apps.microsoft.com/detail/9nh3c6dt1g87)** · [Website](https://pctweaker.app/) · [Support](https://pctweaker.app/support/) · [Release notes](CHANGELOG.md)
 
-<p align="center"><img src="Screenshot/scan_screenshot.png" alt="PC Tweaker Scan interface; appearance and counts may differ by release" width="85%"></p>
+<p align="center"><img src="Screenshot/scan_screenshot.png" alt="Daltoon X Scan interface; appearance and counts may differ by release" width="85%"></p>
 
 **Start with one task:** review a setting, read its trade-offs, apply it if appropriate,
 and use its restore control when supported. Free includes core tools without an account.
 See [what changes on your system](#what-changes-on-your-system) before tuning.
 
 <p align="center">
-  <a href="#safe-download-via-winget"><img src="https://img.shields.io/badge/Safe_download-via_Winget-1793D1?style=for-the-badge" alt="Safe download via Winget"></a>
-  <a href="https://pctweaker.app/#tip"><img src="https://img.shields.io/badge/%E2%98%95_Buy_me_a_coffee-Support_development-FF5500?style=for-the-badge&labelColor=1c1c1c" alt="Buy me a coffee — support PC Tweaker development"></a>
+  <a href="https://pctweaker.app/#tip"><img src="https://img.shields.io/badge/%E2%98%95_Buy_me_a_coffee-Support_development-FF5500?style=for-the-badge&labelColor=1c1c1c" alt="Buy me a coffee — support Daltoon X development"></a>
 </p>
 
 <p align="center">Help fund the next release with a <a href="https://pctweaker.app/#tip"><strong>one-off coffee tip</strong></a>. No account required, no subscription.</p>
 
-## Safe download via Winget
+## Safe download
 
-Download an installer from an official channel above, or use Windows Package Manager:
+This app is **not published to the Windows Package Manager**, so there is no
+`winget install` package for it. The WinGet catalog entry that carries the old
+name belongs to a different product — installing it would not install this one.
 
-```powershell
-winget install --id AurelioAvila.PCTweaker --exact
-```
+Download an installer from an official channel above, then check it against the
+SHA-256 checksum published alongside the release. Check the release version
+before installing. Windows 10/11 x64 is the current binary target; individual
+features depend on the Windows build, edition, drivers and available hardware.
+App compatibility does not extend Microsoft's support lifecycle for your
+operating system.
 
-To check for a package update:
+## Closing and reopening Daltoon X
 
-```powershell
-winget upgrade --id AurelioAvila.PCTweaker --exact
-```
-
-Package catalogs can lag behind a release. Check the release version before installing. Windows 10/11 x64 is the current binary target; individual features depend on the Windows build, edition, drivers and available hardware. App compatibility does not extend Microsoft's support lifecycle for your operating system.
-
-## Closing and reopening PC Tweaker
-
-Closing the window keeps PC Tweaker running in the Windows notification area. Click its icon to reopen it, or right-click and choose **Exit PC Tweaker** to quit. To make closing the window quit instead, clear **Keep running in the background** in the icon's menu. Windows may place the icon in its hidden-icons panel.
+Closing the window keeps Daltoon X running in the Windows notification area. Click its icon to reopen it, or right-click and choose **Exit Daltoon X** to quit. To make closing the window quit instead, clear **Keep running in the background** in the icon's menu. Windows may place the icon in its hidden-icons panel.
 
 ## What you can do
 
@@ -86,11 +81,11 @@ The catalog contains **66 controls: 39 Free and 27 Pro**. The five power-policy 
 
 These controls use Windows power APIs. Unsupported hybrid settings are refused before a system write. No FPS, DPC-latency or micro-stutter improvement is claimed without a workload-specific measurement.
 
-Restoration writes the previous effective AC value back to the original plan. If that value was inherited, it becomes an explicit plan value after restoration; later changes to Windows defaults will not automatically replace it. PC Tweaker does not change protected registry permissions or reset unrelated plan settings to remove that override.
+Restoration writes the previous effective AC value back to the original plan. If that value was inherited, it becomes an explicit plan value after restoration; later changes to Windows defaults will not automatically replace it. Daltoon X does not change protected registry permissions or reset unrelated plan settings to remove that override.
 
 ## What changes on your system
 
-PC Tweaker can change registry values, power settings, services, startup entries and selected network settings. Other tools interact with files, Windows repair utilities, drivers or supported hardware controls. Administrator access is requested for operations that require it.
+Daltoon X can change registry values, power settings, services, startup entries and selected network settings. Other tools interact with files, Windows repair utilities, drivers or supported hardware controls. Administrator access is requested for operations that require it.
 
 | Operation | Recovery scope |
 | --- | --- |
@@ -132,25 +127,41 @@ Free does not require an account. It includes core tweaks, scans, supported rest
 
 Annual billing is approximately 37% below twelve monthly payments. Check the app and checkout for current offers, taxes and renewal terms. Existing lifetime purchases retain the access promised when purchased. Payments use Stripe Checkout; the app does not handle card details. Pro is linked to the purchasing account; the app refreshes its license when you return from checkout while online.
 
-## Download integrity and code signing
+## Download integrity and signing status
 
-[Version-specific signing inventory and verification guide](https://github.com/AurelioAvila/.github/blob/master/CODE_SIGNING.md)
+**There is no Windows Authenticode publisher signature yet.** Daltoon X does not
+hold a Windows code-signing certificate, so the application and both installers
+are unsigned, Windows reports an unknown publisher, and there is no publisher
+name to check. Do not treat an absent signature as a corrupted download, and do
+not trust a file that claims a publisher until this page says one is expected.
 
-**Verify the release you download.** The [latest release](https://github.com/AurelioAvila/pc-tweaker-app/releases/latest) is the download entry point; the version-specific inventory above records signing evidence. For an official Windows build, verify a valid Authenticode signature identifying **Aurelio Avila** and a trusted timestamp on the exact application and installer. A verification recorded for an older release does not establish the status of a newer file.
+The [latest release](https://github.com/wafinbl2021-eng/wafix/releases/latest)
+is the download entry point. Two things *are* verifiable today:
 
-Windows Authenticode and Tauri update signatures have different roles. Authenticode identifies the Windows publisher and detects changes after signing. Tauri's update signature verifies update packages.
+- **Update signatures.** Every updater artifact is signed with the Tauri
+  updater key, and the app verifies that signature against its built-in public
+  key before applying anything. A modified or mirrored update package fails the
+  check instead of installing.
+- **Checksums.** Each release publishes a SHA-256 checksum per artifact, so a
+  download can be compared byte for byte.
 
-Older releases, including v1.8.0, may be unsigned. Their `.sig` update files do not establish Windows Authenticode signing. Check the exact version and the file's Digital Signatures tab.
+Authenticode and Tauri update signatures have different roles. Authenticode
+identifies the Windows publisher and detects changes after signing. Tauri's
+update signature verifies update packages. Only the second one exists today.
 
 To inspect a downloaded installer in PowerShell:
 
 ```powershell
-Get-AuthenticodeSignature -LiteralPath .\PCTweaker-Setup.exe |
+Get-AuthenticodeSignature -LiteralPath .\wafix_1.0.0_x64-setup.exe |
     Select-Object Status, StatusMessage, SignerCertificate, TimeStamperCertificate
-Get-FileHash -LiteralPath .\PCTweaker-Setup.exe -Algorithm SHA256
+Get-FileHash -LiteralPath .\wafix_1.0.0_x64-setup.exe -Algorithm SHA256
 ```
 
-A valid signature does not guarantee the absence of SmartScreen prompts. Microsoft evaluates file and publisher reputation separately. See [Microsoft's SmartScreen guidance](https://learn.microsoft.com/en-us/windows/apps/package-and-deploy/smartscreen-reputation). Use an official distribution channel and verify the publisher when prompted.
+`Status` should read `NotSigned` until a publisher certificate is obtained. A
+valid signature would still not guarantee the absence of SmartScreen prompts:
+Microsoft evaluates file and publisher reputation separately. See [Microsoft's
+SmartScreen guidance](https://learn.microsoft.com/en-us/windows/apps/package-and-deploy/smartscreen-reputation).
+Use an official distribution channel.
 
 ## Reviews and distribution
 
@@ -168,8 +179,8 @@ The GitHub download badge counts release-asset requests, including assets used f
 Prerequisites: Node.js 22 as used by CI, npm, stable Rust installed with [rustup](https://rustup.rs/), Windows Visual Studio Build Tools with **Desktop development with C++**, a Windows SDK, and Microsoft Edge WebView2. See [Tauri's platform prerequisites](https://v2.tauri.app/start/prerequisites/).
 
 ```powershell
-git clone https://github.com/AurelioAvila/pc-tweaker-app.git
-cd pc-tweaker-app
+git clone https://github.com/wafinbl2021-eng/wafix.git
+cd wafix
 npm ci
 npm run tauri dev
 ```
@@ -215,16 +226,16 @@ The website is in [`site/`](site/): run `npm ci` and `npm run build` from that d
 
 ## Report a problem
 
-Use [support](https://pctweaker.app/support/) for billing or private diagnostics. For a reproducible software bug, open a [GitHub issue](https://github.com/AurelioAvila/pc-tweaker-app/issues) with the app version, Windows build, hardware, selected tweak, steps, expected behavior and actual outcome. Remove tokens, email addresses, license files and private paths from public attachments.
+Use [support](https://pctweaker.app/support/) for billing or private diagnostics. For a reproducible software bug, open a [GitHub issue](https://github.com/wafinbl2021-eng/wafix/issues) with the app version, Windows build, hardware, selected tweak, steps, expected behavior and actual outcome. Remove tokens, email addresses, license files and private paths from public attachments.
 
 ## Source availability and license
 
 Tauri 2 and Rust · React and TypeScript · Express, PostgreSQL and Stripe.
 
-PC Tweaker is source-available under a **proprietary license**. Public source access does not make it an OSI-approved open-source project or grant unrestricted redistribution rights. See [LICENSE](LICENSE), [PRIVACY.md](PRIVACY.md) and [TERMS.md](TERMS.md).
+Daltoon X is source-available under a **proprietary license**. Public source access does not make it an OSI-approved open-source project or grant unrestricted redistribution rights. See [LICENSE](LICENSE), [PRIVACY.md](PRIVACY.md) and [TERMS.md](TERMS.md).
 
-Created and maintained by **Aurelio Avila**.
+Created and maintained by **Wafi**.
 
 Lifetime includes everything in Pro, plus exclusive access to selected future tweaks, priority support, saved-profile comparison and portable tuning reports. Future exclusive tweaks will arrive in upcoming releases.
 
-PC Tweaker Lifetime includes Uninstaller Pro for 12 months from the first sign-in to Uninstaller with the same account, including existing Lifetime owners. No automatic renewal. Standalone Uninstaller licenses remain separate.
+Daltoon X Lifetime includes Uninstaller Pro for 12 months from the first sign-in to Uninstaller with the same account, including existing Lifetime owners. No automatic renewal. Standalone Uninstaller licenses remain separate.

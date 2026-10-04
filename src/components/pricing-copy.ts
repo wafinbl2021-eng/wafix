@@ -54,9 +54,9 @@ export const PRICING_COPY: Record<Lang, PricingCopy> = {
   en: {
     title: "Your PC. Your terms.",
     intro: "Start with the essentials. Add advanced tools. Or make Pro yours with one payment.",
-    signed: "Code-signed Windows releases",
+    signed: "Signed and verified updates",
     signature:
-      "Code signing is now in place. Release installers signed by Aurelio Avila let Windows verify the publisher and file integrity. Older downloads may be unsigned. SmartScreen warnings can still appear.",
+      "Every update package carries a cryptographic signature that this app checks against its built-in public key before anything is applied, and every download is verified against its SHA-256 checksum. Windows Authenticode signing is not available for this release, so Windows may report an unknown publisher.",
     previewBuild: "You are viewing a developer build, not a signed release installer.",
     free: "Understand your PC and choose your first changes.",
     pro: "Advanced tuning, privacy and game-session tools.",
@@ -110,9 +110,9 @@ export const PRICING_COPY: Record<Lang, PricingCopy> = {
     title: "Il tuo PC. Alle tue condizioni.",
     intro:
       "Parti dagli strumenti essenziali. Aggiungi quelli avanzati. Oppure scegli Pro con un solo pagamento.",
-    signed: "Release Windows firmate digitalmente",
+    signed: "Aggiornamenti firmati e verificati",
     signature:
-      "La firma digitale è ora disponibile. Gli installer firmati da Aurelio Avila consentono a Windows di verificare autore e integrità. I download precedenti potrebbero non essere firmati. SmartScreen può ancora mostrare avvisi.",
+      "Ogni pacchetto di aggiornamento porta una firma crittografica che questa app verifica con la chiave pubblica integrata prima di applicare qualsiasi cosa, e ogni download viene controllato con il checksum SHA-256. La firma Authenticode di Windows non è ancora disponibile per questa release, quindi Windows potrebbe indicare un editore sconosciuto.",
     previewBuild: "Stai usando una build di sviluppo, non un installer di release firmato.",
     free: "Conosci il tuo PC e scegli le prime modifiche.",
     pro: "Strumenti avanzati per tuning, privacy e sessioni di gioco.",
@@ -170,9 +170,9 @@ export const PRICING_COPY: Record<Lang, PricingCopy> = {
     title: "Votre PC. Votre choix.",
     intro:
       "Commencez par l'essentiel. Ajoutez les outils avancés. Ou choisissez Pro en un seul paiement.",
-    signed: "Versions Windows signées numériquement",
+    signed: "Mises à jour signées et vérifiées",
     signature:
-      "La signature numérique est en place. Les programmes d'installation signés par Aurelio Avila permettent à Windows de vérifier l'éditeur et l'intégrité. Les anciens téléchargements peuvent ne pas être signés. SmartScreen peut encore afficher un avertissement.",
+      "Chaque pack de mise à jour porte une signature cryptographique que cette application vérifie avec sa clé publique intégrée avant toute application, et chaque téléchargement est contrôlé par sa somme de contrôle SHA-256. La signature Authenticode Windows n'est pas encore disponible pour cette version : Windows peut donc signaler un éditeur inconnu.",
     previewBuild:
       "Vous utilisez une version de développement, pas un programme d'installation signé.",
     free: "Comprenez votre PC et choisissez vos premiers réglages.",
@@ -228,9 +228,9 @@ export const PRICING_COPY: Record<Lang, PricingCopy> = {
   es: {
     title: "Tu PC. Tú decides.",
     intro: "Empieza por lo esencial. Añade herramientas avanzadas. O elige Pro con un solo pago.",
-    signed: "Versiones de Windows con firma digital",
+    signed: "Actualizaciones firmadas y verificadas",
     signature:
-      "La firma digital ya está disponible. Los instaladores firmados por Aurelio Avila permiten a Windows verificar el editor y la integridad. Las descargas anteriores pueden no estar firmadas. SmartScreen aún puede mostrar avisos.",
+      "Cada paquete de actualización lleva una firma criptográfica que esta aplicación verifica con su clave pública integrada antes de aplicar nada, y cada descarga se comprueba con su suma de verificación SHA-256. La firma Authenticode de Windows todavía no está disponible para esta versión, por lo que Windows puede indicar un editor desconocido.",
     previewBuild: "Estás usando una versión de desarrollo, no un instalador firmado.",
     free: "Conoce tu PC y elige tus primeros ajustes.",
     pro: "Herramientas avanzadas de ajustes, privacidad y sesiones de juego.",
@@ -286,9 +286,9 @@ export const PRICING_COPY: Record<Lang, PricingCopy> = {
     title: "Dein PC. Deine Entscheidung.",
     intro:
       "Beginne mit dem Wesentlichen. Ergänze erweiterte Werkzeuge. Oder wähle Pro mit einer einzigen Zahlung.",
-    signed: "Digital signierte Windows-Versionen",
+    signed: "Signierte und geprüfte Updates",
     signature:
-      "Die Codesignierung ist eingerichtet. Von Aurelio Avila signierte Installationsdateien ermöglichen Windows, Herausgeber und Integrität zu prüfen. Ältere Downloads können unsigniert sein. SmartScreen kann weiterhin warnen.",
+      "Jedes Update-Paket trägt eine kryptografische Signatur, die diese App vor dem Anwenden mit ihrem eingebetteten öffentlichen Schlüssel prüft, und jeder Download wird gegen seine SHA-256-Prüfsumme geprüft. Die Windows-Authenticode-Signierung ist für diese Version noch nicht verfügbar, daher kann Windows einen unbekannten Herausgeber melden.",
     previewBuild: "Du verwendest eine Entwicklungsversion, kein signiertes Installationspaket.",
     free: "Verstehe deinen PC und wähle deine ersten Änderungen.",
     pro: "Erweiterte Werkzeuge für Tuning, Datenschutz und Spielsitzungen.",
@@ -344,9 +344,9 @@ export const PRICING_COPY: Record<Lang, PricingCopy> = {
     title: "O seu PC. A sua escolha.",
     intro:
       "Comece pelo essencial. Adicione ferramentas avançadas. Ou escolha Pro com um único pagamento.",
-    signed: "Versões Windows assinadas digitalmente",
+    signed: "Atualizações assinadas e verificadas",
     signature:
-      "A assinatura digital já está disponível. Os instaladores assinados por Aurelio Avila permitem ao Windows verificar o editor e a integridade. Os downloads anteriores podem não estar assinados. O SmartScreen ainda pode apresentar avisos.",
+      "Cada pacote de atualização traz uma assinatura criptográfica que esta aplicação verifica com a sua chave pública incorporada antes de aplicar seja o que for, e cada transferência é conferida com o seu checksum SHA-256. A assinatura Authenticode do Windows ainda não está disponível para esta versão, por isso o Windows pode indicar um editor desconhecido.",
     previewBuild: "Está a usar uma versão de desenvolvimento, não um instalador assinado.",
     free: "Conheça o seu PC e escolha os primeiros ajustes.",
     pro: "Ferramentas avançadas de ajustes, privacidade e sessões de jogo.",
@@ -399,5 +399,60 @@ export const PRICING_COPY: Record<Lang, PricingCopy> = {
     afterCancel:
       "Os restauros suportados continuam disponíveis após o fim de Pro. A limpeza e a reparação têm limites próprios.",
     previewCheckout: "O checkout está desativado nesta pré-visualização da campanha.",
+  },
+  ar: {
+    title: "جهازك. شروطك.",
+    intro: "ابدأ بالأساسيات. أضف الأدوات المتقدّمة. أو اجعل Pro لك إلى الأبد بدفعة واحدة.",
+    signed: "تحديثات موقَّعة وموثَّقة",
+    signature:
+      "يحمل كل حزمة تحديث توقيعاً تشفيرياً يتحقق منه هذا التطبيق مقابل مفتاحه العام المدمج قبل تطبيق أي شيء، ويُتحقق من كل تنزيل عبر مجموع التحقق SHA-256. وتوقيع Authenticode الخاص بويندوز غير متاح لهذا الإصدار، لذا قد يعرض ويندوز ناشراً غير معروف.",
+    previewBuild: "أنت تشاهد نسخة تطويرية، لا مُثبِّت إصدار موقَّع.",
+    free: "افهم جهازك واختر تغييراتك الأولى.",
+    pro: "ضبط متقدّم وأدوات خصوصية وجلسات ألعاب.",
+    lifetime: "كل أدوات Pro، دون فاتورة متكرّرة. وسبعتان إضافيتان لأداة الضبط لديك.",
+    renewal: "يتجدّد حتى الإلغاء. أدِره من حسابك.",
+    perpetual: "دفعة واحدة. بلا تجديد اشتراك.",
+    compare: "اختر حسب ما تستخدمه",
+    capability: "ما هو مُضمَّن",
+    essentials: "التعديلات الأساسية والمراقبة المباشرة",
+    advanced: "أدوات Pro المتقدّمة",
+    sessions: "جلسات الألعاب التلقائية",
+    restores: "استعادة الإعدادات المدعومة",
+    updates: "تحديثات Pro",
+    profiles: "مقارنة الملفات التعريفية المحفوظة",
+    reports: "تقارير ضبط قابلة للنقل",
+    futureTweaks: "وصول حصري إلى تعديلات مستقبلية منتقاة",
+    prioritySupport: "دعم ذو أولوية",
+    uninstallerBonus:
+      "Uninstaller Pro لمدة 12 شهراً من أول تسجيل دخول لديك في Uninstaller. مُضمَّن مع مدى الحياة، بما في ذلك أصحابه الحاليون. بلا تجديد تلقائي.",
+    profileDetail:
+      "ضع ملفين تعريفيين محفوظين جنباً إلى جنب. انظر الإعدادات المشتركة والفروق قبل أن تختار أحدهما.",
+    reportDetail:
+      "عاين وصدّر تقرير Markdown عن إعداداتك المسجَّلة، مع مقارنة اختيارية بين الملفات التعريفية. وأنت تختار ما تشاركه.",
+    newExtras: "سببان إضافيان لامتلاك مدى الحياة",
+    openTools: "افتح أدوات مدى الحياة",
+    notBenchmark: "هذه الأدوات توثّق الإعدادات. وهي لا تقيس ولا تدّعي مكاسب في الأداء.",
+    campaign: "ينتهي عرض مدى الحياة الحالي خلال",
+    rare: "نادراً ما يُقدَّم. وهذا ليس خصماً متكررّاً.",
+    earlyAccess: "ميزات جديدة في معاينة مبكرة",
+    mayChange:
+      "قد تتغيّر الأسعار والتوفّر بعد هذا الموعد النهائي. ويبقى وصول مدى الحياة الذي حصلت عليه ملكاً لك.",
+    ends: "ينتهي العرض",
+    hours: "ساعة",
+    minutes: "دقيقة",
+    seconds: "ثانية",
+    preview: "معاينة الحملة · غير مُفعَّلة",
+    unavailable: "تعذّر التحقق من توفّر مدى الحياة. حدِّث الصفحة قبل الشراء.",
+    retry: "تحقّق مرة أخرى",
+    expired: "انتهى عرض مدى الحياة هذا.",
+    scheduled: "لم يبدأ عرض مدى الحياة التالي بعد.",
+    checking: "جارٍ التحقق من توفّر مدى الحياة…",
+    checkout: "يُعرض السعر النهائي والضرائب المطبَّقة وشروط الدفع عند إتمام الشراء.",
+    terms: "شروط واضحة قبل أن تختار",
+    twoYears: "بسعر Pro السنوي الحالي، تكلّف سنتان من Pro ما مقداره {price}.",
+    current: "الخطة الحالية",
+    afterCancel:
+      "تبقى عمليات الاستعادة المدعومة متاحة بعد انتهاء Pro. أما التنظيف والإصلاح فلهما حدود استرداد خاصة بهما.",
+    previewCheckout: "إتمام الشراء معطَّل في هذه المعاينة للحملة.",
   },
 };

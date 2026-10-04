@@ -65,10 +65,6 @@
 .pricing-trust summary > span:first-child {
   color: var(--app-accent);
 }
-.pricing-publisher {
-  margin-left: auto;
-  color: var(--text-muted);
-}
 .pricing-trust p {
   margin-top: 10px;
   max-width: 80ch;

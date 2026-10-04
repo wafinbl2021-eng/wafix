@@ -4,13 +4,13 @@ $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 . "$PSScriptRoot/release-safety.ps1"
 if ($Tag) { Assert-ReleaseTag -Tag $Tag }
-$endpoint = 'repos/AurelioAvila/pc-tweaker-app/releases/latest'
-if ($Tag) { $endpoint = 'repos/AurelioAvila/pc-tweaker-app/releases/tags/' + [uri]::EscapeDataString($Tag) }
+$endpoint = 'repos/wafinbl2021-eng/wafix/releases/latest'
+if ($Tag) { $endpoint = 'repos/wafinbl2021-eng/wafix/releases/tags/' + [uri]::EscapeDataString($Tag) }
 $json = & gh api $endpoint
 if ($LASTEXITCODE -ne 0) { throw 'Could not retrieve release metadata.' }
 $release = $json | ConvertFrom-Json
 Assert-ReleaseTag -Tag $release.tag_name
-if ($release.draft -or $release.prerelease) { throw 'Only stable, published releases may reach WinGet.' }
+if ($release.draft -or $release.prerelease) { throw 'Only stable, published releases may be distributed.' }
 $installers = @($release.assets | Where-Object { $_.name -match '\.(exe|msi)$' })
 if (@($installers | Where-Object { $_.name -match '_x64-setup\.exe$' }).Count -ne 1 -or
     @($installers | Where-Object { $_.name -match '\.msi$' }).Count -lt 1) {

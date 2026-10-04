@@ -25,25 +25,38 @@ export type ThemeName =
  *
  * The count is deliberately 14: the picker lays these out 7 per row, so 12
  * left two visibly empty slots dangling under the second row.
+ *
+ * There is no `label` here. The names are user-visible text — the picker's
+ * `title` and `aria-label` — so they live in `STRINGS[lang].themeLabels`, keyed
+ * by these codes and typed `Record<ThemeName, string>` so that adding a theme
+ * below without naming it in every locale fails the build.
  */
-export const THEMES: { code: ThemeName; label: string; swatch: string }[] = [
-  { code: "violet", label: "Violet", swatch: "#ff5c8a" },
-  { code: "teal_depths", label: "Teal Depths", swatch: "#35e0c0" },
-  { code: "amber_dusk", label: "Amber Dusk", swatch: "#ffb84d" },
-  { code: "crimson_steel", label: "Crimson Steel", swatch: "#ff4d6d" },
-  { code: "ocean_blue", label: "Ocean Blue", swatch: "#3d8bff" },
-  { code: "forest_emerald", label: "Forest Emerald", swatch: "#2ecc71" },
-  { code: "royal_gold", label: "Royal Gold", swatch: "#e8b923" },
-  { code: "slate_mono", label: "Slate Mono", swatch: "#9aa5b1" },
-  { code: "indigo_night", label: "Indigo Night", swatch: "#6c63ff" },
-  { code: "coral_sunset", label: "Coral Sunset", swatch: "#ff7a45" },
-  { code: "rose_quartz", label: "Rose Quartz", swatch: "#ffafcb" },
-  { code: "cyber_lime", label: "Cyber Lime", swatch: "#b6ff3c" },
-  { code: "copper_forge", label: "Copper Forge", swatch: "#d98b4a" },
-  { code: "magenta_pulse", label: "Magenta Pulse", swatch: "#ff2fd0" },
+export const THEMES: { code: ThemeName; swatch: string }[] = [
+  { code: "violet", swatch: "#ff5c8a" },
+  { code: "teal_depths", swatch: "#35e0c0" },
+  { code: "amber_dusk", swatch: "#ffb84d" },
+  { code: "crimson_steel", swatch: "#ff4d6d" },
+  { code: "ocean_blue", swatch: "#3d8bff" },
+  { code: "forest_emerald", swatch: "#2ecc71" },
+  { code: "royal_gold", swatch: "#e8b923" },
+  { code: "slate_mono", swatch: "#9aa5b1" },
+  { code: "indigo_night", swatch: "#6c63ff" },
+  { code: "coral_sunset", swatch: "#ff7a45" },
+  { code: "rose_quartz", swatch: "#ffafcb" },
+  { code: "cyber_lime", swatch: "#b6ff3c" },
+  { code: "copper_forge", swatch: "#d98b4a" },
+  { code: "magenta_pulse", swatch: "#ff2fd0" },
 ];
 
+/**
+ * Where the chosen theme is remembered. Exported for the same reason as
+ * `LANG_STORAGE_KEY`: the write lives in `App.tsx` and the read here, and a
+ * half-renamed pair would reset the user's theme on every launch without any
+ * visible error. No migration — Daltoon X has never shipped.
+ */
+export const THEME_STORAGE_KEY = "wafix-theme";
+
 export function detectInitialTheme(): ThemeName {
-  const stored = localStorage.getItem("pc-tweaker-theme");
+  const stored = localStorage.getItem(THEME_STORAGE_KEY);
   return THEMES.some((t) => t.code === stored) ? (stored as ThemeName) : "violet";
 }

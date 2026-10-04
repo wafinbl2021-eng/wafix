@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-launch-luatools"
+description = "Enables the launch_luatools command without any pre-configured scope."
+commands.allow = ["launch_luatools"]
+
+[[permission]]
+identifier = "deny-launch-luatools"
+description = "Denies the launch_luatools command without any pre-configured scope."
+commands.deny = ["launch_luatools"]

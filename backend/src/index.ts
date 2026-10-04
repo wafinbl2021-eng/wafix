@@ -130,7 +130,7 @@ app.use(express.static(path.join(__dirname, "..", "public")));
 // the .msi themselves. Cached in memory for a few minutes: GitHub's
 // unauthenticated API is rate-limited to 60 req/hour, which a few concurrent
 // visitors could otherwise burn through in minutes.
-const GITHUB_REPO = "AurelioAvila/pc-tweaker-app";
+const GITHUB_REPO = "wafinbl2021-eng/wafix";
 const RELEASE_CACHE_TTL_MS = 10 * 60 * 1000;
 
 type ReleaseCache = { checkedAt: number; downloadUrl: string | null; version: string | null };
@@ -322,7 +322,7 @@ app.get("/", async (_req: Request, res: Response) => {
   <p style="margin-top:28px;">
     <a class="btn-primary" href="${primaryHref}">&#8681; Download for Windows${versionLabel}</a>
   </p>
-  <p style="color:#8b87a0; font-size:14px;">Windows 10/11, 64-bit &middot; 39 Free controls &middot; also on <a href="https://winstall.app/apps/AurelioAvila.PCTweaker">winget</a></p>
+  <p style="color:#8b87a0; font-size:14px;">Windows 10/11, 64-bit &middot; 39 Free controls &middot; no account required</p>
 </section>
 
 <section class="wrap" id="features">

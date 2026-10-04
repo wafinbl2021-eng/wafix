@@ -65,7 +65,7 @@ pub fn apply(store: &RollbackStore) -> Result<(), String> {
         Err(e) => return Err(format!("could not inspect the shell override: {e}")),
         Ok(_) => {
             return Err(
-                "this key already exists on your system — PC Tweaker won't overwrite a shell \
+                "this key already exists on your system — Daltoon X won't overwrite a shell \
              override it didn't create"
                     .to_string(),
             );

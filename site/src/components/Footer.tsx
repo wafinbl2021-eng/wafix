@@ -2,7 +2,7 @@ import { text } from "../i18n/dictionary";
 import { Link } from "../router";
 import { NewsletterSignup } from "./NewsletterSignup";
 
-const GH = "https://github.com/AurelioAvila/pc-tweaker-app";
+const GH = "https://github.com/wafinbl2021-eng/wafix";
 
 interface FootLink {
   readonly label: string;

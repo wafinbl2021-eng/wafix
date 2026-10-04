@@ -56,9 +56,20 @@ pub const APP_COMMANDS: &[&str] = &[
     "compare_lifetime_profiles",
     "preview_lifetime_report",
     "save_lifetime_report",
-    "save_license",
+    // The entitlement fetch replaces `save_license`. That command took a signed
+    // response *from* the webview and cached it, which put a write path in front
+    // of the one check this app has. `account_license` fetches in Rust, verifies,
+    // and returns only `{ is_pro, plan }`.
+    "account_license",
     "license_status",
     "clear_license",
+    // Accounts. Governed like every other command, so the HUD and the
+    // untrusted window cannot ask "who is signed in" — a question whose answer
+    // is a user's email address.
+    "account_me",
+    "account_login",
+    "account_register",
+    "account_logout",
     "list_tweaks",
     "apply_tweak",
     "apply_tweaks",
@@ -119,6 +130,11 @@ pub const APP_COMMANDS: &[&str] = &[
     "list_scheduled_tasks",
     "set_scheduled_task_enabled",
     "flush_dns_cache",
+    // LuaTools. Daltoon X ships no LuaTools file and installs nothing; these
+    // only find and start a copy the user already has. Both take no arguments,
+    // so the webview cannot name a path. See src/luatools.rs.
+    "luatools_status",
+    "launch_luatools",
     "list_wafx_apps",
     "list_wafx_categories",
     "install_wafx_app",

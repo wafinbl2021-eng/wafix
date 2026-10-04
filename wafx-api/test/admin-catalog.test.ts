@@ -398,6 +398,284 @@ describe("versions", () => {
     }
   });
 
+  // ---------------------------------------------------------------------------
+  // A direct https URL, with no upload and no checksum. This is the whole
+  // convenience the catalog offers: paste a link to the installer and it works.
+  // ---------------------------------------------------------------------------
+
+  describe("a direct https installer URL is enough", () => {
+    test("a version is created with no checksum field at all", async () => {
+      const h = await signedIn();
+      try {
+        await createApp(h, { name: "Firefox" });
+        const created = await version(h, {
+          version: "131.0",
+          installer_type: "exe",
+          installer_mode: "silent",
+          installer_url: "https://download.example/firefox-131.exe",
+          published: true,
+        });
+        assert.equal(created.status, 201, "a missing checksum must not block creation");
+
+        const detail = await h.json<{ app: { versions: AdminVersion[] } }>("/api/admin/apps/firefox");
+        const stored = detail.body.app.versions[0]!;
+        assert.equal(stored.installer_sha256, null, "stored as absent, not as an empty string");
+        assert.equal(stored.installer_url, "https://download.example/firefox-131.exe");
+        assert.equal(stored.installer_type, "exe");
+        assert.equal(stored.installer_mode, "silent");
+      } finally {
+        h.close();
+      }
+    });
+
+    test("an empty checksum is the same as omitting it, but a blank one is refused", async () => {
+      // Three cases, and the third is deliberate rather than an oversight.
+      //
+      // Omitted and `""` both mean "no digest", and both are accepted - that is
+      // the whole convenience being offered. A whitespace-only string is
+      // *present*, so it is held to the rule for a present value and rejected,
+      // rather than being silently dropped. Silently dropping it is the
+      // surprising behaviour: an operator who typed spaces into the field would
+      // get an unverified install and no indication of it.
+      //
+      // This cannot be reached through the panel, which trims before sending.
+      const h = await signedIn();
+      try {
+        await createApp(h, { name: "Firefox" });
+
+        const omitted = await version(h, {
+          version: "7.0",
+          installer_type: "msi",
+          installer_url: "https://download.example/thing-7-0.msi",
+        });
+        assert.equal(omitted.status, 201);
+
+        const empty = await version(h, {
+          version: "7.1",
+          installer_type: "msi",
+          installer_url: "https://download.example/thing-7-1.msi",
+          installer_sha256: "",
+        });
+        assert.equal(empty.status, 201, "{sha:?} should be treated as absent");
+
+        const blank = await version(h, {
+          version: "7.2",
+          installer_type: "msi",
+          installer_url: "https://download.example/thing-7-2.msi",
+          installer_sha256: "   ",
+        });
+        assert.equal(blank.status, 422, "a present-but-blank digest is refused, not ignored");
+
+        const detail = await h.json<{ app: { versions: AdminVersion[] } }>("/api/admin/apps/firefox");
+        assert.equal(detail.body.app.versions.length, 2, "only the two accepted versions exist");
+        for (const stored of detail.body.app.versions) {
+          assert.equal(stored.installer_sha256, null, "stored as absent, not as an empty string");
+        }
+      } finally {
+        h.close();
+      }
+    });
+
+    test("both containers are accepted", async () => {
+      const h = await signedIn();
+      try {
+        await createApp(h, { name: "Firefox" });
+        for (const type of ["exe", "msi"]) {
+          const created = await version(h, {
+            version: type === "exe" ? "2.0" : "2.1",
+            installer_type: type,
+            installer_url: `https://download.example/thing.${type}`,
+          });
+          assert.equal(created.status, 201, `${type} should be accepted`);
+        }
+      } finally {
+        h.close();
+      }
+    });
+
+    test("all three install modes are accepted", async () => {
+      const h = await signedIn();
+      try {
+        await createApp(h, { name: "Firefox" });
+        for (const mode of ["silent", "passive", "interactive"]) {
+          const created = await version(h, {
+            version: mode === "silent" ? "3.0" : mode === "passive" ? "3.1" : "3.2",
+            installer_type: "exe",
+            installer_mode: mode,
+            installer_url: `https://download.example/thing-${mode}.exe`,
+          });
+          assert.equal(created.status, 201, `${mode} should be accepted`);
+        }
+      } finally {
+        h.close();
+      }
+    });
+
+    test("http is refused and https is kept", async () => {
+      const h = await signedIn();
+      try {
+        await createApp(h, { name: "Firefox" });
+        const refused = await version(h, {
+          version: "4.0",
+          installer_type: "exe",
+          installer_url: "http://download.example/thing.exe",
+        });
+        assert.equal(refused.status, 422, "plain http must not be accepted");
+        assert.match(JSON.stringify(refused.body), /https/i);
+
+        const accepted = await version(h, {
+          version: "4.1",
+          installer_type: "exe",
+          installer_url: "https://download.example/thing.exe",
+        });
+        assert.equal(accepted.status, 201);
+      } finally {
+        h.close();
+      }
+    });
+
+    test("an unparseable URL is refused", async () => {
+      const h = await signedIn();
+      try {
+        await createApp(h, { name: "Firefox" });
+        for (const bad of ["not a url", "ftp://download.example/thing.exe", "/local/path.exe"]) {
+          const refused = await version(h, {
+            version: "4.0",
+            installer_type: "exe",
+            installer_url: bad,
+          });
+          assert.equal(refused.status, 422, `{bad} should be refused`);
+        }
+      } finally {
+        h.close();
+      }
+    });
+
+    test("a URL carrying credentials is refused", async () => {
+      // https://downloads.example@evil.example reads as downloads.example in a
+      // status bar and resolves to evil.example.
+      const h = await signedIn();
+      try {
+        await createApp(h, { name: "Firefox" });
+        const refused = await version(h, {
+          version: "4.0",
+          installer_type: "exe",
+          installer_url: "https://downloads.example:token@evil.example/thing.exe",
+        });
+        assert.equal(refused.status, 422);
+        assert.match(JSON.stringify(refused.body), /credential/i);
+      } finally {
+        h.close();
+      }
+    });
+
+    test("no field can carry an installer argument or a command", async () => {
+      // The API never sends a command line, so there is nowhere to put one. Each
+      // of these is a 422 naming the offending key rather than a silent drop.
+      const h = await signedIn();
+      try {
+        await createApp(h, { name: "Firefox" });
+        for (const [index, extra] of [
+          { args: "/S /D=C:\\Windows" },
+          { arguments: ["--quiet"] },
+          { command: "powershell -enc AAAA" },
+          { installer_args: "--run=setup.exe" },
+          { program: "cmd.exe" },
+          { shell: true },
+        ].entries()) {
+          const refused = await version(h, {
+            version: `7.${index}`,
+            installer_type: "exe",
+            installer_url: `https://download.example/thing-${index}.exe`,
+            ...extra,
+          });
+          assert.equal(refused.status, 422, `{${Object.keys(extra)[0]}} must be refused`);
+        }
+      } finally {
+        h.close();
+      }
+    });
+
+    test("a container or mode outside the closed sets is refused", async () => {
+      const h = await signedIn();
+      try {
+        await createApp(h, { name: "Firefox" });
+        for (const [index, bad] of [
+          { installer_type: "bat" },
+          { installer_mode: "silent; calc.exe" },
+          { installer_type: "powershell" },
+          { installer_mode: "--run=setup.exe" },
+        ].entries()) {
+          const refused = await version(h, {
+            version: `7.${index}`,
+            installer_type: "exe",
+            installer_url: `https://download.example/thing-${index}.exe`,
+            ...bad,
+          });
+          assert.equal(refused.status, 422, `{${JSON.stringify(bad)}} must be refused`);
+        }
+      } finally {
+        h.close();
+      }
+    });
+
+    test("r2 is still refused, because no bucket exists", async () => {
+      // Support for it is untouched and still validated; there is simply nowhere
+      // to put the bytes yet, so the panel must not be able to select it.
+      const h = await signedIn();
+      try {
+        await createApp(h, { name: "Firefox" });
+        const refused = await version(h, {
+          version: "4.0",
+          installer_type: "exe",
+          installer_url_kind: "r2",
+          installer_url: "installers/firefox.exe",
+        });
+        assert.equal(refused.status, 422);
+        assert.match(JSON.stringify(refused.body), /R2/i);
+      } finally {
+        h.close();
+      }
+    });
+
+    test("a version that already carries a checksum keeps working unchanged", async () => {
+      // The existing shape must be untouched by any of the above: a hash is
+      // still stored, still 64 hex, still normalised.
+      const h = await signedIn();
+      try {
+        await createApp(h, { name: "Firefox" });
+        const created = await version(h, {
+          version: "131.0",
+          installer_type: "exe",
+          installer_url: "https://download.example/firefox-131.exe",
+          installer_sha256: "A".repeat(64),
+        });
+        assert.equal(created.status, 201);
+
+        const detail = await h.json<{ app: { versions: AdminVersion[] } }>("/api/admin/apps/firefox");
+        const stored = detail.body.app.versions[0]!;
+        assert.equal(
+          stored.installer_sha256,
+          "a".repeat(64),
+          "stored lowercase, as it always was",
+        );
+
+        // And a malformed one is still a 422 rather than being quietly ignored,
+        // because ignoring it would downgrade a verified install to an
+        // unverified one without anyone noticing.
+        const bad = await version(h, {
+          version: "132.0",
+          installer_type: "exe",
+          installer_url: "https://download.example/firefox-132.exe",
+          installer_sha256: "not-a-hash",
+        });
+        assert.equal(bad.status, 422);
+      } finally {
+        h.close();
+      }
+    });
+  });
+
   test("refuses a duplicate version for the same app", async () => {
     const h = await signedIn();
     try {
@@ -567,7 +845,7 @@ describe("versions", () => {
             method: "POST",
             admin: true,
             body: JSON.stringify({
-              version: "1.0",
+              version: "4.0",
               installer_type: "exe",
               installer_url: "https://download.example/a.exe",
             }),

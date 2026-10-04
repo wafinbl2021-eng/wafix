@@ -1,4 +1,4 @@
-import { useRef, useState, type MouseEvent } from "react";
+import { useRef, type MouseEvent } from "react";
 import { motion } from "framer-motion";
 import { text } from "../i18n/dictionary";
 import { ACCENTS, THEME_ORDER, useTheme } from "../theme";
@@ -31,47 +31,6 @@ function ThemeSelector() {
             }}
           />
         ))}
-      </div>
-    </div>
-  );
-}
-
-/* ---------- hi-fi fake terminal for the winget command ---------- */
-function WingetTerminal() {
-  const [copied, setCopied] = useState(false);
-
-  const copy = () => {
-    void navigator.clipboard.writeText(text.hero.terminalCmd).then(() => {
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 1600);
-    });
-  };
-
-  return (
-    <div className="ring-accent-soft overflow-hidden rounded-xl border border-white/5 bg-[var(--bg-2)]/90 backdrop-blur-sm">
-      <div className="flex items-center justify-between border-b border-white/5 px-4 py-2.5">
-        <div className="flex items-center gap-1.5">
-          <span className="h-2.5 w-2.5 rounded-full bg-[var(--line)]" />
-          <span className="h-2.5 w-2.5 rounded-full bg-[var(--line)]" />
-          <span className="bg-accent h-2.5 w-2.5 rounded-full" />
-        </div>
-        <span className="font-mono-t text-[10.5px] tracking-wider text-[var(--fg-dim)]">
-          {text.hero.terminalTitle}
-        </span>
-        <button
-          onClick={copy}
-          className="font-mono-t text-accent cursor-pointer text-[10.5px] font-bold tracking-[0.14em] transition-opacity hover:opacity-70"
-        >
-          {copied ? text.hero.copied : text.hero.copy}
-        </button>
-      </div>
-      <div className="font-mono-t px-4 py-4 text-[13px] leading-relaxed">
-        <div className="text-[var(--fg-dim)]">{text.hero.terminalHint}</div>
-        <div className="mt-1 text-[var(--fg)]">
-          <span className="text-accent">$ </span>
-          {text.hero.terminalCmd}
-          <span className="caret ml-1.5" />
-        </div>
       </div>
     </div>
   );
@@ -161,10 +120,6 @@ export function HeroSection() {
             <p className="mt-3 max-w-md text-[12.5px] leading-relaxed text-[var(--fg-dim)]">
               {text.hero.safetyNote}
             </p>
-
-            <div className="mt-6 max-w-md">
-              <WingetTerminal />
-            </div>
 
             <div className="mt-9 flex flex-wrap gap-5">
               {text.hero.badges.map((b) => (

@@ -76,6 +76,7 @@ const LIST_SEARCH: Record<Lang, string> = {
   es: "Buscar en esta lista",
   de: "Diese Liste durchsuchen",
   pt: "Pesquisar nesta lista",
+  ar: "ابحث في هذه القائمة",
 };
 
 export function ToolSearch({

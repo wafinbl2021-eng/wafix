@@ -17,7 +17,11 @@
 
 export type Sample = { t: number; p: number };
 
-const HISTORY_KEY = "pctweaker.repair.stepDurations";
+// A learned average per repair step. Renamed from `pctweaker.repair.stepDurations`
+// with the other live keys; no migration, because Wafi X has never shipped and
+// there is no install whose timings would be lost. A user who does have the old
+// key simply starts learning again after one repair.
+const HISTORY_KEY = "wafix.repair.stepDurations";
 const HISTORY_RUNS = 5;
 
 export function median(values: number[]): number | null {

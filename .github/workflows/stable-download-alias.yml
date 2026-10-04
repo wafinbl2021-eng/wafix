@@ -1,10 +1,10 @@
 name: Stable download alias
 
-# Releases are versioned by filename (pc-tweaker-app_X.Y.Z_x64-setup.exe),
+# Releases are versioned by filename (wafix_X.Y.Z_x64-setup.exe),
 # which is correct for the release page but useless as a permanent "click to
 # download" link — it changes every release. This mirrors each new release's
-# installer under a fixed name (PCTweaker-Setup.exe/.msi) so the website can
-# link to /releases/latest/download/PCTweaker-Setup.exe once and never touch
+# installer under a fixed name (WafiX-Setup.exe/.msi) so the website can
+# link to /releases/latest/download/WafiX-Setup.exe once and never touch
 # it again.
 
 on:
@@ -68,12 +68,12 @@ jobs:
       - name: Rename to stable filenames
         run: |
           mkdir -p out
-          cp "$(ls dl/*_x64-setup.exe)" out/PCTweaker-Setup.exe
-          cp "$(ls dl/*_x64_en-US.msi)" out/PCTweaker-Setup.msi
+          cp "$(ls dl/*_x64-setup.exe)" out/WafiX-Setup.exe
+          cp "$(ls dl/*_x64_en-US.msi)" out/WafiX-Setup.msi
 
       - name: Verify final aliases before upload
         shell: pwsh
-        run: ./scripts/verify-authenticode.ps1 -Path @('out/PCTweaker-Setup.exe', 'out/PCTweaker-Setup.msi')
+        run: ./scripts/verify-authenticode.ps1 -Path @('out/WafiX-Setup.exe', 'out/WafiX-Setup.msi')
 
       - name: Upload stable aliases to the release
         env:
@@ -81,5 +81,5 @@ jobs:
           TAG: ${{ steps.tag.outputs.tag }}
         run: |
           gh release upload "$TAG" \
-            out/PCTweaker-Setup.exe out/PCTweaker-Setup.msi \
+            out/WafiX-Setup.exe out/WafiX-Setup.msi \
             --repo "${{ github.repository }}" --clobber

@@ -1,5 +1,14 @@
 # Release Runbook — the "Control Room" launch (all apps except Social Dashboard)
 
+> **Historical record — PC Tweaker, not Wafi X.** Prepared 2026-08-21 and
+> already executed. Every path, artifact name and stable alias below describes
+> the PC Tweaker 1.0.0 release exactly as it shipped and is kept verbatim so the
+> record stays truthful. Do **not** run these commands for Wafi X: the artifact
+> names are now `wafix_*`, the stable alias is `WafiX-Setup.exe/.msi`, the
+> repository is `wafinbl2021-eng/wafix`, and the updater key is outside the
+> repository. Use [RELEASING.md](../RELEASING.md) and
+> [RELEASE-VERIFICATION.md](../RELEASE-VERIFICATION.md) instead.
+
 Prepared 2026-08-21, executed on the owner's explicit "rilascia".
 Everything below is already built, signed, and verified locally; the run
 is push + publish only. Order matters: the Uninstaller goes first so the

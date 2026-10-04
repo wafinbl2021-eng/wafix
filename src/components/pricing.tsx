@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { format, Lang, Strings } from "../i18n";
+import { format, formatCount, Lang, Strings } from "../i18n";
 import {
   money,
   PRICE_ANNUAL,
@@ -108,7 +108,6 @@ export function PricingPanel({
             <CheckIcon className="h-4 w-4" />
           </span>
           {copy.signed}
-          <span className="pricing-publisher">Aurelio Avila</span>
         </summary>
         <p>{copy.signature}</p>
         {import.meta.env.DEV && <p>{copy.previewBuild}</p>}
@@ -150,7 +149,7 @@ export function PricingPanel({
           </div>
           <p className="pricing-price-note">{s.pricing.freePriceNote}</p>
           <ul className="pricing-highlights">
-            <li>{format(s.pricing.freeFeatures[0], { count: freeTweakCount })}</li>
+            <li>{formatCount(s.pricing.freeFeatures[0], freeTweakCount)}</li>
             <li>{copy.essentials}</li>
             <li>{copy.restores}</li>
           </ul>

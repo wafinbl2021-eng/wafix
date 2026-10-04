@@ -18,7 +18,8 @@
   --danger: #ff6b6b;
   --ok: #3ecf8e;
   --radius: 8px;
-  --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans Arabic",
+    "Segoe UI Historic", Tahoma, "Geeza Pro", "Arabic Typesetting", sans-serif;
   --mono: ui-monospace, "Cascadia Code", Consolas, monospace;
 }
 
@@ -26,11 +27,42 @@
   box-sizing: border-box;
 }
 
+/*
+ * The `hidden` attribute has to win.
+ *
+ * The UA stylesheet's `[hidden] { display: none }` is an ordinary declaration, so
+ * any author rule that also sets `display` on the same element beats it. `.topbar`
+ * sets `display: flex`, which meant the tab strip - the five administrative
+ * section links and the Sign out button - stayed rendered for a visitor with no
+ * session while `element.hidden` still read `true`. That is precisely the thing
+ * this panel must never do, and it is invisible to any check that only reads the
+ * attribute: it needs a browser to see.
+ *
+ * `!important` is what puts the attribute back in charge. It is the conventional
+ * fix for exactly this, and it is scoped to the attribute rather than to any one
+ * element, so the next `display` rule cannot reopen the hole.
+ */
+[hidden] {
+  display: none !important;
+}
+
+/*
+ * The panel is an Arabic document (`lang="ar"`, `dir="rtl"` on the root), so the
+ * base font has to actually cover Arabic script, and Arabic needs more leading
+ * than Latin at the same size or its descenders collide in table cells. The Latin
+ * names stay ahead of the Arabic ones for the runs that remain Latin -
+ * identifiers rendered through `.ltr`, and the few English words that are
+ * deliberately not translated (`Pro`, `pro`, `lifetime`, `exe`, `msi`, `stable`,
+ * `beta`, `SHA-256`).
+ *
+ * Controls pick the family up through the existing `font: inherit` rules below;
+ * `font` is a shorthand, so they take this line-height with them.
+ */
 body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
-  font: 15px/1.5 var(--font);
+  font: 15px/1.6 var(--font);
 }
 
 /* ---------------------------------------------------------------- top bar */
@@ -245,7 +277,70 @@ button.ghost:hover {
   color: var(--text);
 }
 
-/* ----------------------------------------------------------------- tables */
+/* --------------------------------------------------------------- grids */
+
+/*
+ * A data grid inside a horizontally scrollable box.
+ *
+ * Seven columns of real values - an address, two timestamps, a status, a set of
+ * buttons - do not fit a narrow panel. Without this the table keeps its intrinsic
+ * width and the overflow escapes out of the *inline end*, which under RTL is the
+ * LEFT, so the last column is the part that falls off the screen: the account
+ * actions, which is the one column an operator came to use. Scrolling the box
+ * keeps every column reachable in either direction.
+ *
+ * The scroller is `direction`-agnostic on purpose - scrolling is a physical
+ * gesture, so the browser handles it correctly under `dir="rtl"` without help.
+ */
+.scroll-x {
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.scroll-x > .grid {
+  /*
+   * Let the table take the width its values need, then scroll.
+   *
+   * `width: 100%` - and `auto`, which is shrink-to-fit - ask the table to fit the
+   * container. With `white-space: nowrap` on the single-value cells that cannot be
+   * done honestly: the browser squeezes columns until two of them share an x
+   * position and their values overlap, which is what this rule replaced.
+   * `max-content` sizes each column to its own value and never overlaps; the cost
+   * is a grid wider than a narrow panel, and the wrapper's `overflow-x: auto` is
+   * what makes that width reachable. `min-width: 100%` still fills the panel when
+   * the content is narrower than the box.
+   */
+  width: max-content;
+  min-width: 100%;
+}
+
+/*
+ * Single-value cells never break mid-value.
+ *
+ * Scoped by id rather than by `:nth-child` across every grid, because column
+ * meaning is per-table: the address, the plan and the two timestamps in the
+ * accounts list are one value each, while an application name or a release note
+ * in another grid is prose that should still wrap. A timestamp split over three
+ * lines is unreadable, so these are held to one.
+ */
+#accounts-table td:nth-child(1),
+#accounts-table td:nth-child(4),
+#accounts-table td:nth-child(5),
+#accounts-table td:nth-child(6) {
+  white-space: nowrap;
+}
+
+/*
+ * An action button keeps its label on one line. The cell's own `nowrap` is not
+ * enough - a `<button>` carries `white-space: normal` from the UA stylesheet, so
+ * a `منح Pro` button in a partly-scrolled column wraps to "منح" / "Pro", which
+ * reads as two separate controls.
+ */
+.scroll-x > .grid td.actions button {
+  white-space: nowrap;
+}
+
+/* --------------------------------------------------------------- tables */
 
 .grid {
   width: 100%;
@@ -259,7 +354,9 @@ button.ghost:hover {
 
 .grid th,
 .grid td {
-  text-align: left;
+  /* Logical, not `left`: the document is RTL, and `start` is the right edge
+     there. A physical value would pin every cell to the wrong side. */
+  text-align: start;
   padding: 10px 12px;
   border-bottom: 1px solid var(--line);
   vertical-align: top;
@@ -269,7 +366,6 @@ button.ghost:hover {
   color: var(--muted);
   font-weight: 600;
   font-size: 12px;
-  text-transform: uppercase;
   letter-spacing: 0.05em;
   background: var(--panel-2);
 }
@@ -285,7 +381,31 @@ button.ghost:hover {
 
 td.actions {
   white-space: nowrap;
-  text-align: right;
+  text-align: start;
+}
+
+/*
+ * A value that is an identifier rather than prose: an email address, a UUID, a
+ * hash, a URL, a version, a plan name. Inside RTL text these would otherwise be
+ * laid out right-to-left, which moves the `@`, the `/` and the trailing dot to
+ * the wrong end and makes an address hard to read back.
+ *
+ * `unicode-bidi: isolate` keeps the run's own characters from reordering, and
+ * `text-align: start` then aligns the isolated run to the cell's own start edge
+ * rather than to the left.
+ */
+.ltr {
+  display: inline-block;
+  direction: ltr;
+  unicode-bidi: isolate;
+  text-align: start;
+}
+
+/* Same idea for the identifiers the panel renders as cells rather than spans. */
+.grid td.ltr,
+.grid th.ltr {
+  direction: ltr;
+  unicode-bidi: isolate;
 }
 
 button.link {
@@ -307,6 +427,67 @@ button.link.danger {
 button.link:disabled {
   opacity: 0.5;
   cursor: progress;
+}
+
+/* ----------------------------------------------------------------- badges */
+
+/*
+ * Status is a word before it is a colour. "Pro منتهية" and "لا يوجد Pro" are
+ * different facts about an account, and an operator should never have to infer
+ * one from a hue they cannot name.
+ */
+.badge {
+  display: inline-block;
+  padding: 2px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--panel-2);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.badge.ok {
+  color: var(--ok);
+  border-color: rgba(62, 207, 142, 0.45);
+  background: rgba(62, 207, 142, 0.1);
+}
+
+.badge.warn {
+  color: #f5b74e;
+  border-color: rgba(245, 183, 78, 0.45);
+  background: rgba(245, 183, 78, 0.1);
+}
+
+.badge.danger {
+  color: var(--danger);
+  border-color: rgba(255, 107, 107, 0.45);
+  background: rgba(255, 107, 107, 0.1);
+}
+
+/* A form row that reads as one line: the field grows, the buttons do not. */
+.row.tight {
+  align-items: center;
+  margin-top: 8px;
+}
+
+.row.tight input {
+  /*
+   * Basis 0, not `auto`.
+   *
+   * `input` carries `width: 100%`, and `flex-basis: auto` resolves a flex item's
+   * starting size from `width` - so the field claims a whole 100% line and the
+   * buttons are pushed onto a second row, in a row whose whole purpose is to be
+   * one line. A zero basis makes the field grow into whatever space the buttons
+   * leave over, which is what "the field grows" is supposed to mean.
+   */
+  flex: 1 1 0%;
+  min-width: 0;
+}
+
+.row.tight button {
+  flex: 0 0 auto;
 }
 
 /* -------------------------------------------------------------- messages */
@@ -338,20 +519,71 @@ code {
   background: var(--panel-2);
   padding: 1px 5px;
   border-radius: 4px;
+  /* `latest.json` is a filename, not Arabic prose: without this the dot lands on
+     the wrong side of the name in an RTL paragraph. */
+  direction: ltr;
+  unicode-bidi: isolate;
 }
 
 .toast {
   position: fixed;
   bottom: 22px;
-  left: 50%;
+  /* Centred by translating half its own width, which is direction-agnostic, so
+     this needs no RTL variant - only the accent edge below does. */
+  inset-inline-start: 50%;
   transform: translateX(-50%);
   background: var(--panel-2);
   border: 1px solid var(--line);
-  border-left: 3px solid var(--ok);
+  border-inline-start: 3px solid var(--ok);
   border-radius: 6px;
   padding: 11px 18px;
   font-size: 14px;
   z-index: 20;
+  max-width: min(560px, calc(100vw - 32px));
+}
+
+/* ------------------------------------------------------------------ pager */
+
+/*
+ * Server-side paging for the accounts list.
+ *
+ * `justify-content: flex-end` is written as `end` via `margin-inline-start:auto`
+ * on the info span instead, so the page indicator sits against the reading edge
+ * in both directions rather than needing an RTL override.
+ */
+.pager {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.pager-info {
+  color: var(--muted);
+  font-size: 13px;
+  margin-inline-start: auto;
+  margin-inline-end: auto;
+  order: 0;
+}
+
+/*
+ * The row range is a numeric interval, and under `dir="rtl"` an unisolated `1-5`
+ * is laid out as a right-to-left run - which renders it as "5-1", i.e. backwards.
+ * `.ltr` isolates the digits so they keep their own order. The label stays
+ * Arabic; only the interval is forced left-to-right, because that is the order
+ * the numbers are counted in.
+ */
+.pager-info.ltr {
+  display: inline-block;
+}
+
+.pager button {
+  order: 1;
+}
+
+.pager button:disabled {
+  opacity: 0.45;
+  cursor: default;
 }
 
 @media (max-width: 640px) {

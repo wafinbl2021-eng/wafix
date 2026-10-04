@@ -31,11 +31,6 @@ export interface Dictionary {
     readonly sub: string;
     readonly cta: string;
     readonly safetyNote: string;
-    readonly terminalTitle: string;
-    readonly terminalCmd: string;
-    readonly terminalHint: string;
-    readonly copy: string;
-    readonly copied: string;
     readonly badges: readonly { readonly label: string; readonly href: string }[];
     readonly themeLabel: string;
   };
@@ -214,12 +209,7 @@ export const engDictionary: Dictionary = {
     "subBold": "Make deliberate changes. Keep what works.",
     "sub": " Review Windows settings for gaming, privacy and everyday use. See what each tweak changes, save its previous state and restore supported settings when you need to. Start free. No account required.",
     "cta": "Download Free for Windows",
-    "safetyNote": "PC Tweaker installers are code-signed. Our signed Windows installers identify Aurelio Avila as the publisher. Older downloads may be unsigned; check the file's Digital Signatures tab. SmartScreen may still show a warning for a new release.",
-    "terminalTitle": "Install with Windows Package Manager",
-    "terminalCmd": "winget install --id AurelioAvila.PCTweaker --exact",
-    "terminalHint": "# install the official PC Tweaker package",
-    "copy": "COPY",
-    "copied": "COPIED",
+    "safetyNote": "PC Tweaker update packages carry a cryptographic signature that the app verifies before applying anything, and downloads can be checked against their SHA-256 checksum. Windows Authenticode signing is not available for this release, so Windows may report an unknown publisher; SmartScreen may still show a warning for a new release.",
     "badges": [
       {
         "label": "MajorGeeks reviews",
@@ -235,7 +225,7 @@ export const engDictionary: Dictionary = {
       },
       {
         "label": "Inspect the source",
-        "href": "https://github.com/AurelioAvila/pc-tweaker-app"
+        "href": "https://github.com/wafinbl2021-eng/wafix"
       }
     ],
     "themeLabel": "THEMES"
@@ -514,7 +504,7 @@ export const engDictionary: Dictionary = {
       },
       {
         "q": "Is PC Tweaker code-signed?",
-        "a": "PC Tweaker ships with Windows application and installer signatures from Aurelio Avila and a trusted timestamp. Older releases may be unsigned. A valid signature identifies the publisher and helps detect changed files. The separate update signature verifies update packages. Neither guarantees performance gains or prevents every SmartScreen prompt."
+        "a": "No. PC Tweaker does not yet carry a Windows Authenticode publisher signature, so Windows shows the file as coming from an unknown publisher and SmartScreen may warn you. What it does have is a Tauri update signature: every update package is signed and verified by the app before anything is applied, and each release publishes a SHA-256 checksum you can compare a download against. Neither a signature nor a checksum guarantees performance gains."
       }
     ]
   },
@@ -543,7 +533,7 @@ export const engDictionary: Dictionary = {
     "navLabel": "Support",
     "tag": "SUPPORT / DIRECT LINE",
     "title": "Something not working? Tell us.",
-    "intro": "Send the details below so Aurelio can investigate the issue. Include your app version, the setting or tool involved, and the exact error message.",
+    "intro": "Send the details below so Wafi can investigate the issue. Include your app version, the setting or tool involved, and the exact error message.",
     "selfServeTitle": "Start with these checks",
     "selfServe": [
       {
@@ -552,7 +542,7 @@ export const engDictionary: Dictionary = {
       },
       {
         "q": "Windows blocked the installer (\"unrecognized app\")",
-        "a": "Check that the download came from an official channel and compare the release notes and publisher details. Version 1.9.0 introduces signed Windows installers from Aurelio Avila. Older versions, including v1.8.0, may be unsigned. A valid signature or winget installation does not guarantee that SmartScreen will show no warning."
+        "a": "Check that the download came from an official channel and compare the release notes and the file's SHA-256 checksum. Because no Windows Authenticode publisher signature exists yet, Windows reports an unknown publisher and SmartScreen may warn you; that warning alone does not mean the download is altered. Compare the checksum and the release notes before installing."
       },
       {
         "q": "Pro features are still locked after paying",
@@ -638,9 +628,9 @@ export const engDictionary: Dictionary = {
     "terms": "Terms & Billing",
     "cookies": "Cookies",
     "accessibility": "Accessibility",
-    "contact": "Contact Aurelio",
+    "contact": "Contact Wafi",
     "license": "Source-Available License",
-    "copyright": "Created and maintained by Aurelio Avila. © 2026 Aurelio Avila",
+    "copyright": "Created and maintained by Wafi. © 2026 Wafi",
     "motto": "// every millisecond is earned",
     "tipThanks": "Thank you for supporting PC Tweaker."
   }

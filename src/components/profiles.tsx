@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { open as openFolderDialog, save as saveFileDialog } from "@tauri-apps/plugin-dialog";
-import { format, Lang, Strings } from "../i18n";
+import { format, formatCount, Lang, Strings } from "../i18n";
 import { formatEpochDate } from "../lib";
 import { FolderIcon, LayersIcon } from "./icons";
 import { LoadedProfile, Toast, TweakInfo, TweakProfile } from "../types";
@@ -46,7 +46,7 @@ export function ProfileRow({
       <div className="workspace-profile-identity">
         <h3>{profile.name || "—"}</h3>
         <p>
-          {format(s.profiles.tweakCount, { count: profile.tweaks.length })}
+          {formatCount(s.profiles.tweakCount, profile.tweaks.length)}
           {!imported && profile.created_at ? ` · ${formatEpochDate(profile.created_at)}` : ""}
         </p>
       </div>
@@ -201,7 +201,7 @@ export function ProfilesPanel({
       if (failures.length === 0)
         pushToast(
           "success",
-          format(s.profiles.appliedToast, { count: profile.tweaks.length - failures.length }),
+          formatCount(s.profiles.appliedToast, profile.tweaks.length - failures.length),
         );
     } catch (e) {
       pushToast("error", String(e));
@@ -214,8 +214,8 @@ export function ProfilesPanel({
   async function exportProfile(profile: TweakProfile) {
     try {
       const path = await saveFileDialog({
-        defaultPath: `${profile.name || "pctweaker"}.pctweaker.json`,
-        filters: [{ name: "PC Tweaker profile", extensions: ["json"] }],
+        defaultPath: `${profile.name || "wafix"}.wafix.json`,
+        filters: [{ name: "Daltoon X profile", extensions: ["json"] }],
       });
       if (!path) return;
       await invoke("write_profile_file", { path, profile });
@@ -230,18 +230,15 @@ export function ProfilesPanel({
       const picked = await openFolderDialog({
         multiple: false,
         directory: false,
-        filters: [{ name: "PC Tweaker profile", extensions: ["json"] }],
+        filters: [{ name: "Daltoon X profile", extensions: ["json"] }],
       });
       if (typeof picked !== "string") return;
       const loaded = await invoke<LoadedProfile>("read_profile_file", { path: picked });
       // Loaded, never applied: the user sees what's in it and decides.
       setPending(loaded);
-      pushToast(
-        "success",
-        format(s.profiles.importedToast, { count: loaded.profile.tweaks.length }),
-      );
+      pushToast("success", formatCount(s.profiles.importedToast, loaded.profile.tweaks.length));
       if (loaded.unknown.length > 0) {
-        pushToast("error", format(s.profiles.droppedWarning, { count: loaded.unknown.length }));
+        pushToast("error", formatCount(s.profiles.droppedWarning, loaded.unknown.length));
       }
     } catch (e) {
       pushToast("error", String(e));
@@ -326,7 +323,7 @@ export function ProfilesPanel({
           <ProfileRow s={s} profile={pending.profile} imported busy={busy} onApply={applyProfile} />
           {pending.unknown.length > 0 && (
             <p className="workspace-import-warning" role="status">
-              {format(s.profiles.droppedWarning, { count: pending.unknown.length })}
+              {formatCount(s.profiles.droppedWarning, pending.unknown.length)}
             </p>
           )}
         </section>

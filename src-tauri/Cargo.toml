@@ -1,8 +1,8 @@
 [package]
 name = "tauri-app"
-version = "1.14.10"
+version = "1.0.0"
 description = "Real Windows tweaks with automatic one-click rollback"
-authors = ["Aurelio Avila"]
+authors = ["Wafi"]
 license-file = "../LICENSE"
 edition = "2021"
 
@@ -73,6 +73,11 @@ windows-sys = { version = "0.59", features = [
     # NtSetSystemInformation, for the standby-list purge in the Zero-Trace
     # cleaner. Declared via LoadLibrary rather than linked, same as srclient.
     "Win32_Security",
+    # CryptProtectData / CryptUnprotectData, so the account session cookie is
+    # encrypted to the current Windows user rather than sitting in a readable
+    # file. See src/account.rs. A feature on a crate already in the tree — no
+    # new dependency.
+    "Win32_Security_Cryptography",
     "Win32_System_Memory",
     # A real-time ETW consumer, for the frame counter. See src/fps.rs — the
     # DXGI provider's Present events are the only way to observe a game's

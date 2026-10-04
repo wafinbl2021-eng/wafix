@@ -37,7 +37,11 @@ export type AuditAction =
   | "release.update"
   | "release.delete"
   | "release.publish"
-  | "release.unpublish";
+  | "release.unpublish"
+  | "account.pro_grant"
+  | "account.pro_revoke"
+  | "account.disable"
+  | "account.enable";
 
 export interface AuditEntry {
   readonly action: AuditAction;

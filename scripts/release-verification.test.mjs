@@ -63,7 +63,7 @@ test(
       assert.notEqual(result.status, 0);
       assert.match(result.stdout + result.stderr, /Authenticode verification failed/);
       assert.equal(fs.existsSync(path.join(nsis, "latest.json")), false);
-      assert.equal(fs.existsSync(path.join(nsis, "PCTweaker-Setup.exe")), false);
+      assert.equal(fs.existsSync(path.join(nsis, "WafiX-Setup.exe")), false);
     } finally {
       removeVerificationDirectory(dir, fs.realpathSync(os.tmpdir()));
     }

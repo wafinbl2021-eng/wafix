@@ -135,7 +135,7 @@ export function TitleBar({
           </span>
         </span>
 
-        <div data-tauri-drag-region className="ml-auto flex items-center gap-4 pr-3">
+        <div data-tauri-drag-region className="ms-auto flex items-center gap-4 pr-3">
           {cpuPct !== null && <Meter label={s.titlebar.cpu} pct={cpuPct} />}
           {ramPct !== null && <Meter label={s.titlebar.ram} pct={ramPct} />}
         </div>

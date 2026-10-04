@@ -14,12 +14,23 @@ process.env.DATABASE_URL = "pgmem";
 
 const { initSchema, getPool } = await import("../dist/db.js");
 const { grantPro } = await import("../dist/routes/stripe.js");
-const { upsertEntitlement, productEntitlement } = await import("../dist/products.js");
+const { upsertEntitlement, isProductRowEntitled } = await import("../dist/products.js");
 
 await initSchema();
 
-const REAL_PERIOD_END = new Date("2026-10-02T12:00:00Z");
-const PROVISIONAL = new Date("2026-09-05T12:00:00Z");
+// Measured from the moment this file loads, not from fixed calendar dates.
+// A hardcoded `2026-10-02T12:00:00Z` made the suite a time bomb: the instant the
+// wall clock passed it, the entitlement below was legitimately expired, `active`
+// flipped to false, and the file failed with no change to the code under test.
+// The bug this file exists for is about write ordering, so nothing here should
+// depend on what today's date happens to be. NOW is captured once so every
+// fixture in the file shares a single clock.
+const NOW = new Date();
+const DAY_MS = 24 * 60 * 60 * 1000;
+/** The month the customer actually paid for. */
+const REAL_PERIOD_END = new Date(NOW.getTime() + 30 * DAY_MS);
+/** checkout.session.completed's 3-day holding guess, which knows less. */
+const PROVISIONAL = new Date(NOW.getTime() + 3 * DAY_MS);
 
 async function createUser(email) {
   const { rows } = await getPool().query(
@@ -89,11 +100,15 @@ test("the entitlements table has the same guard", async () => {
   await upsertEntitlement(userId, "uninstaller", { plan: "annual", expiresAt: PROVISIONAL, provisional: true });
 
   const { rows } = await getPool().query(
-    "SELECT expires_at FROM entitlements WHERE user_id = $1 AND product = 'uninstaller'",
+    "SELECT plan, expires_at FROM entitlements WHERE user_id = $1 AND product = 'uninstaller'",
     [userId],
   );
   assert.equal(new Date(rows[0].expires_at).toISOString(), REAL_PERIOD_END.toISOString());
 
-  const entitlement = await productEntitlement(userId, "uninstaller");
-  assert.equal(entitlement.active, true);
+  // Evaluated against NOW, the same instant the fixtures were built from, so
+  // this asks "is the preserved period one that grants access?" and never "is
+  // the fixture still in the future?". `productEntitlement` reaches this same
+  // predicate after its lifetime-bonus branch, which does not apply to an
+  // annual paid row; the billing suites cover that composition separately.
+  assert.equal(isProductRowEntitled(rows[0], NOW), true);
 });

@@ -40,7 +40,7 @@ export function CoffeeCard({ s, onTip }: { s: Strings; onTip: (quantity: number)
         </span>
         <span className="truncate">{s.coffee.nav}</span>
         <ChevronDown
-          className={`ml-auto h-3 w-3 shrink-0 opacity-50 transition-transform duration-200 ${
+          className={`ms-auto h-3 w-3 shrink-0 opacity-50 transition-transform duration-200 ${
             open ? "rotate-180" : ""
           }`}
         />

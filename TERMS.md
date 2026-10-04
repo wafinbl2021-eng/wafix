@@ -6,7 +6,7 @@ Welcome to PC Tweaker ("we", "us", "our"). By downloading, installing, or using 
 
 ## 1. What PC Tweaker does
 
-PC Tweaker is a Windows desktop app for system settings, maintenance and current-user app removal. Supported setting changes save their original values for restoration. File cleanup and app removal may delete data permanently; reinstalling an app does not restore its data or guarantee the same version. Source code is publicly viewable at [github.com/AurelioAvila/pc-tweaker-app](https://github.com/AurelioAvila/pc-tweaker-app) for transparency; see the repository's [LICENSE](https://github.com/AurelioAvila/pc-tweaker-app/blob/master/LICENSE) for the terms governing that source.
+PC Tweaker is a Windows desktop app for system settings, maintenance and current-user app removal. Supported setting changes save their original values for restoration. File cleanup and app removal may delete data permanently; reinstalling an app does not restore its data or guarantee the same version. Source code is publicly viewable at [github.com/wafinbl2021-eng/wafix](https://github.com/wafinbl2021-eng/wafix) for transparency; see the repository's [LICENSE](https://github.com/wafinbl2021-eng/wafix/blob/HEAD/LICENSE) for the terms governing that source.
 
 ## 2. Free and Pro tiers
 
@@ -15,7 +15,7 @@ PC Tweaker is a Windows desktop app for system settings, maintenance and current
 - You can cancel anytime; Pro access continues until the end of the current billing period, then reverts to the Free tier — cancelling does not undo tweaks already applied, it only locks further use of Pro-only tweaks and presets.
 - A small number of early customers purchased a one-time lifetime unlock before the subscription model existed; that access does not expire and is unaffected by this section.
 - Prices are listed in the app and may change; changes do not affect the price of an active subscription until its next renewal.
-- Refund requests can be opened as an issue at [github.com/AurelioAvila/pc-tweaker-app/issues](https://github.com/AurelioAvila/pc-tweaker-app/issues) and will be reviewed case by case.
+- Refund requests can be opened as an issue at [github.com/wafinbl2021-eng/wafix/issues](https://github.com/wafinbl2021-eng/wafix/issues) and will be reviewed case by case.
 
 ## 3. Accounts
 
@@ -31,7 +31,7 @@ You agree not to redistribute modified versions of the Pro unlock mechanism, or 
 
 ## 6. Third-party services
 
-We use Stripe for payment processing and an SMTP provider for account emails (verification, password reset). See our [Privacy Policy](https://github.com/AurelioAvila/pc-tweaker-app/blob/master/PRIVACY.md) for details.
+We use Stripe for payment processing and an SMTP provider for account emails (verification, password reset). See our [Privacy Policy](https://github.com/wafinbl2021-eng/wafix/blob/HEAD/PRIVACY.md) for details.
 
 ## 7. Changes to these terms
 
@@ -39,4 +39,4 @@ We may update these Terms as the app evolves; the "Last updated" date above refl
 
 ## 8. Contact
 
-Questions about these Terms? Open an issue at [github.com/AurelioAvila/pc-tweaker-app/issues](https://github.com/AurelioAvila/pc-tweaker-app/issues).
+Questions about these Terms? Open an issue at [github.com/wafinbl2021-eng/wafix/issues](https://github.com/wafinbl2021-eng/wafix/issues).

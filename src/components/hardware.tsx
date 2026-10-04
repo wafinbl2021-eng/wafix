@@ -1,10 +1,9 @@
-import { TweakyDriverPromoCard } from "./tweaky-driver-promo";
 import { ToolHeader, ToolSearch, ToolDetails } from "./tool-section";
 import { useCallback, useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { format, Strings } from "../i18n";
+import { format, formatCount, Strings } from "../i18n";
 import { readCachedDriverAudit, writeCachedDriverAudit } from "../lib";
 import {
   DriverAudit,
@@ -1099,16 +1098,16 @@ export function DriversPanel({
               })}
             </span>
             <span className="rounded-full bg-surface-2 px-3 py-1.5 text-[11.5px] font-semibold text-ink-2">
-              {format(s.hardware.driversCounted, { count: String(audit.entries.length) })}
+              {formatCount(s.hardware.driversCounted, audit.entries.length)}
             </span>
             {aging > 0 && (
               <span className="rounded-full px-3 py-1.5 text-[11.5px] font-semibold text-amber-300 ring-1 ring-[color-mix(in_oklab,#fbbf24_38%,transparent)]">
-                {format(s.hardware.driversAging, { count: String(aging) })}
+                {formatCount(s.hardware.driversAging, aging)}
               </span>
             )}
             {stale > 0 && (
               <span className="rounded-full px-3 py-1.5 text-[11.5px] font-semibold text-rose-300 ring-1 ring-[color-mix(in_oklab,#f87171_38%,transparent)]">
-                {format(s.hardware.driversStale, { count: String(stale) })}
+                {formatCount(s.hardware.driversStale, stale)}
               </span>
             )}
             {aging === 0 && stale === 0 && audit.entries.length > 0 && (
@@ -1144,9 +1143,7 @@ export function DriversPanel({
                 >
                   {showAll
                     ? s.hardware.driversShowLess
-                    : format(s.hardware.driversShowAll, {
-                        count: String(audit.entries.length - NOTEWORTHY),
-                      })}
+                    : formatCount(s.hardware.driversShowAll, audit.entries.length - NOTEWORTHY)}
                 </button>
               )}
             </div>
@@ -1225,9 +1222,7 @@ export function DriversPanel({
                 >
                   {installing
                     ? s.hardware.winUpdateInstalling
-                    : format(s.hardware.winUpdateInstall, {
-                        count: String(selectedTitles.size),
-                      })}
+                    : formatCount(s.hardware.winUpdateInstall, selectedTitles.size)}
                 </button>
               )}
 
@@ -1318,7 +1313,7 @@ export function DriversPanel({
               all three are part of the reading, not footnotes to it. */}
           <ToolDetails label={s.healthPanel.showMore} className="mt-4">
             <p className="text-[11.5px] leading-relaxed text-ink-3">
-              {format(s.hardware.driversInboxNote, { count: String(audit.excluded_inbox) })}
+              {formatCount(s.hardware.driversInboxNote, audit.excluded_inbox)}
             </p>
             <p className="text-[11.5px] leading-relaxed text-ink-3">
               {s.hardware.driversNoUpdateCheck}
@@ -1378,7 +1373,6 @@ export function HardwarePanel({
         <>
           <ThermalsPanel s={s} pushToast={pushToast} />
           <DriversPanel s={s} pushToast={pushToast} />
-          <TweakyDriverPromoCard s={s} />
           {/* Sits under the audit it reads from: the audit answers "how old
               are my drivers", this answers "open the pages for the old ones". */}
           <DriverBoosterCard

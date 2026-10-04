@@ -2,6 +2,21 @@ $ErrorActionPreference = 'Stop'
 if ($env:GITHUB_ACTIONS -ne 'true' -or -not $env:RUNNER_TEMP) {
   throw 'Installer execution is restricted to the disposable CI runner.'
 }
+
+# Resolve the expected publisher before any download or install work, so a
+# misconfigured runner fails immediately instead of after minutes of network.
+# The certificate is supplied by the release environment. No thumbprint is baked
+# in: a compiled-in thumbprint outlives the certificate it was written for and
+# would keep accepting a retired publisher. An unset value stops this gate
+# instead of weakening it, and nothing here can be satisfied by a self-signed
+# certificate because Get-AuthenticodeSignature reports Status 'UnknownError'
+# for an untrusted chain.
+$signerThumbprint = $env:WAFIX_SIGNER_THUMBPRINT
+if (-not $signerThumbprint) {
+  throw 'WAFIX_SIGNER_THUMBPRINT is not set. The Wafi publisher certificate must be named explicitly by the release environment.'
+}
+$signerPublisher = if ($env:WAFIX_SIGNER_PUBLISHER) { $env:WAFIX_SIGNER_PUBLISHER } else { 'Wafi' }
+
 if ($env:RELEASE_TAG -notmatch '^v\d+\.\d+\.\d+$') { throw 'Invalid release tag' }
 if ($env:INSTALLER_FORMAT -notin @('nsis','msi')) { throw 'Select one installer format per disposable runner' }
 $version = (Get-Content src-tauri/tauri.conf.json -Raw | ConvertFrom-Json).version
@@ -17,8 +32,16 @@ if ($LASTEXITCODE -ne 0) { throw 'Could not download candidate installers' }
 
 function Assert-Signed([string]$Path) {
   $sig = Get-AuthenticodeSignature -LiteralPath $Path
-  if ($sig.Status -ne 'Valid' -or $sig.SignerCertificate.Thumbprint -ne '4F8341A74D16077AE1849DC8B8CAC99F22606754' -or -not $sig.TimeStamperCertificate) {
-    throw "Invalid signature, publisher or timestamp: $Path"
+  if ($sig.Status -ne 'Valid' -or -not $sig.SignerCertificate -or -not $sig.TimeStamperCertificate) {
+    throw "Invalid signature or missing trusted timestamp: $Path"
+  }
+  $publisher = $sig.SignerCertificate.GetNameInfo(
+    [System.Security.Cryptography.X509Certificates.X509NameType]::SimpleName, $false)
+  if ($publisher -cne $signerPublisher) {
+    throw "Unexpected publisher '$publisher', expected '${signerPublisher}': $Path"
+  }
+  if ($sig.SignerCertificate.Thumbprint -ne $signerThumbprint) {
+    throw "Unexpected certificate $($sig.SignerCertificate.Thumbprint), expected ${signerThumbprint}: $Path"
   }
   Write-Output "Verified signed payload: $([IO.Path]::GetFileName($Path))"
 }

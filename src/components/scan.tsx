@@ -2,7 +2,7 @@ import { collectScan, LAST_SCAN_KEY, readLastScan, type LastScan } from "../scan
 import { ToolHeader } from "./tool-section";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { format, Strings } from "../i18n";
+import { format, formatCount, Strings } from "../i18n";
 import { textFor } from "../lib";
 import { CONFIGURABLE_TWEAK_IDS } from "../catalog";
 import { CleanupInfo, ScanIssue, SystemProfile, Toast, TweakAdvice, TweakInfo } from "../types";
@@ -473,7 +473,7 @@ export function ScanPanel({
     // Land on an explicit "Done!" screen rather than dropping the user back
     // into a half-empty checklist: the result of the click is then unmistakable.
     setPhase("done");
-    if (fixed > 0) pushToast("success", format(s.scan.fixedToast, { count: fixed }));
+    if (fixed > 0) pushToast("success", formatCount(s.scan.fixedToast, fixed));
   }
 
   const totalIssues = fixableIssues.length + lockedIssues.length;
@@ -612,7 +612,7 @@ export function ScanPanel({
             {s.scan.doneTitle}
           </p>
           <p className="mt-1 text-center text-sm text-ink-3">
-            {format(s.scan.doneBody, { count: fixedCount })}
+            {formatCount(s.scan.doneBody, fixedCount)}
           </p>
 
           {/* Measured, not claimed. Two real runs of the Baseline Engine on
@@ -683,7 +683,7 @@ export function ScanPanel({
             >
               {totalIssues === 0
                 ? s.scan.foundNone
-                : format(s.scan.foundHeadline, { count: totalIssues })}
+                : formatCount(s.scan.foundHeadline, totalIssues)}
             </p>
           </div>
 
@@ -718,7 +718,7 @@ export function ScanPanel({
                   )}
                   {fixing
                     ? format(s.scan.fixing, { done: fixProgress, total: fixTotal })
-                    : format(s.scan.fixRecommended, { count: recommendedIds.length })}
+                    : formatCount(s.scan.fixRecommended, recommendedIds.length)}
                 </span>
               </button>
 
@@ -732,7 +732,7 @@ export function ScanPanel({
                     measuring…
                   </span>
                 )}
-                {format(s.scan.fixEverything, { count: checkedCount })}
+                {formatCount(s.scan.fixEverything, checkedCount)}
               </button>
 
               <div className="mt-2 flex items-center justify-between">
